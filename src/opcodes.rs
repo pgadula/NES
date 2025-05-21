@@ -1,280 +1,280 @@
 use crate::m6502::Mos6502;
 
 //add with carry
-pub fn adc(cpu: &mut Mos6502) {}
+pub fn adc(cpu: &mut Mos6502, am: AddressingMode) {}
 
 //and (with accumulator)
-pub fn and(cpu: &mut Mos6502) {
+pub fn and(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //arithmetic shift left
-pub fn asl(cpu: &mut Mos6502) {
+pub fn asl(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //branch on carry clear
-pub fn bcc(cpu: &mut Mos6502) {
+pub fn bcc(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //branch on carry set
-pub fn bcs(cpu: &mut Mos6502) {
+pub fn bcs(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //branch on equal (zero set)
-pub fn beq(cpu: &mut Mos6502) {
+pub fn beq(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //bit test
-pub fn bit(cpu: &mut Mos6502) {
+pub fn bit(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //branch on minus (negative set)
-pub fn bmi(cpu: &mut Mos6502) {
+pub fn bmi(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //branch on not equal (zero clear)
-pub fn bne(cpu: &mut Mos6502) {
+pub fn bne(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //branch on plus (negative clear)
-pub fn bpl(cpu: &mut Mos6502) {
+pub fn bpl(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //break / interrupt
-pub fn brk(cpu: &mut Mos6502) {
+pub fn brk(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //branch on overflow clear
-pub fn bvc(cpu: &mut Mos6502) {
+pub fn bvc(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //branch on overflow set
-pub fn bvs(cpu: &mut Mos6502) {
+pub fn bvs(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //clear carry
-pub fn clc(cpu: &mut Mos6502) {
+pub fn clc(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //clear decimal
-pub fn cld(cpu: &mut Mos6502) {
+pub fn cld(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //clear interrupt disable
-pub fn cli(cpu: &mut Mos6502) {
+pub fn cli(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //clear overflow
-pub fn clv(cpu: &mut Mos6502) {
+pub fn clv(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //compare (with accumulator)
-pub fn cmp(cpu: &mut Mos6502) {
+pub fn cmp(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //compare with X
-pub fn cpx(cpu: &mut Mos6502) {
+pub fn cpx(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //compare with Y
-pub fn cpy(cpu: &mut Mos6502) {
+pub fn cpy(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //decrement
-pub fn dec(cpu: &mut Mos6502) {
+pub fn dec(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //decrement X
-pub fn dex(cpu: &mut Mos6502) {
+pub fn dex(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //decrement Y
-pub fn dey(cpu: &mut Mos6502) {
+pub fn dey(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //exclusive or (with accumulator)
-pub fn eor(cpu: &mut Mos6502) {
+pub fn eor(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //increment
-pub fn inc(cpu: &mut Mos6502) {
+pub fn inc(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //increment X
-pub fn inx(cpu: &mut Mos6502) {
+pub fn inx(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //increment Y
-pub fn iny(cpu: &mut Mos6502) {
+pub fn iny(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //jump
-pub fn jmp(cpu: &mut Mos6502) {
+pub fn jmp(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //jump subroutine
-pub fn jsr(cpu: &mut Mos6502) {
+pub fn jsr(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //load accumulator
-pub fn lda(cpu: &mut Mos6502) {
+pub fn lda(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //load X
-pub fn ldx(cpu: &mut Mos6502) {
+pub fn ldx(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //load Y
-pub fn ldy(cpu: &mut Mos6502) {
+pub fn ldy(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //logical shift right
-pub fn lsr(cpu: &mut Mos6502) {
+pub fn lsr(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //no operation
-pub fn nop(cpu: &mut Mos6502) {
+pub fn nop(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //or with accumulator
-pub fn ora(cpu: &mut Mos6502) {
+pub fn ora(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //push accumulator
-pub fn pha(cpu: &mut Mos6502) {
+pub fn pha(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //push processor status (SR)
-pub fn php(cpu: &mut Mos6502) {
+pub fn php(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //pull accumulator
-pub fn pla(cpu: &mut Mos6502) {
+pub fn pla(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //pull processor status (SR)
-pub fn plp(cpu: &mut Mos6502) {
+pub fn plp(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //rotate left
-pub fn rol(cpu: &mut Mos6502) {
+pub fn rol(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //rotate right
-pub fn ror(cpu: &mut Mos6502) {
+pub fn ror(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //return from interrupt
-pub fn rti(cpu: &mut Mos6502) {
+pub fn rti(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //return from subroutine
-pub fn rts(cpu: &mut Mos6502) {
+pub fn rts(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //subtract with carry
-pub fn sbc(cpu: &mut Mos6502) {
+pub fn sbc(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //set carry
-pub fn sec(cpu: &mut Mos6502) {
+pub fn sec(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //set decimal
-pub fn sed(cpu: &mut Mos6502) {
+pub fn sed(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //set interrupt disable
-pub fn sei(cpu: &mut Mos6502) {
+pub fn sei(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //store accumulator
-pub fn sta(cpu: &mut Mos6502) {
+pub fn sta(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //store X
-pub fn stx(cpu: &mut Mos6502) {
+pub fn stx(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //store Y
-pub fn sty(cpu: &mut Mos6502) {
+pub fn sty(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //transfer accumulator to X
-pub fn tax(cpu: &mut Mos6502) {
+pub fn tax(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //transfer accumulator to Y
-pub fn tay(cpu: &mut Mos6502) {
+pub fn tay(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //transfer stack pointer to X
-pub fn tsx(cpu: &mut Mos6502) {
+pub fn tsx(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //transfer X to accumulator
-pub fn txa(cpu: &mut Mos6502) {
+pub fn txa(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //transfer X to stack pointer
-pub fn txs(cpu: &mut Mos6502) {
+pub fn txs(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
 //transfer Y to accumulator
-pub fn tya(cpu: &mut Mos6502) {
+pub fn tya(cpu: &mut Mos6502, am: AddressingMode) {
     todo!();
 }
 
@@ -306,7 +306,7 @@ impl AddressingMode {
         use AddressingMode::*;
         match self {
             Implied | Accumulator => 1,
-            
+
             Immediate
             | ZeroPage
             | XIndexedZeroPageIndirect
@@ -314,9 +314,272 @@ impl AddressingMode {
             | YIndexedZeroPage
             | ZeroPageIndirectYIndexed
             | Relative => 2,
-            
+
             Absolute | XIndexedAbsolute | YIndexedAbsolute | AbsoluteIndirect => 3,
         }
+    }
+}
+pub fn resolve_opcode(n: u8) -> Option<(Opcode, AddressingMode)> {
+    match n {
+        0x00 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x01 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x02 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x03 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x04 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x05 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x06 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x07 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x08 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x09 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x0A => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x0B => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x0C => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x0D => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x0E => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x0F => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x10 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x11 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x12 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x13 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x14 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x15 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x16 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x17 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x18 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x19 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x1A => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x1B => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x1C => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x1D => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x1E => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x1F => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x20 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x21 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x22 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x23 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x24 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x25 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x26 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x27 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x28 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x29 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x2A => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x2B => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x2C => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x2D => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x2E => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x2F => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x30 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x31 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x32 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x33 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x34 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x35 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x36 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x37 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x38 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x39 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x3A => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x3B => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x3C => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x3D => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x3E => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x3F => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x40 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x41 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x42 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x43 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x44 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x45 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x46 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x47 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x48 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x49 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x4A => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x4B => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x4C => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x4D => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x4E => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x4F => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x50 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x51 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x52 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x53 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x54 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x55 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x56 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x57 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x58 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x59 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x5A => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x5B => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x5C => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x5D => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x5E => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x5F => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x60 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x61 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x62 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x63 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x64 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x65 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x66 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x67 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x68 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x69 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x6A => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x6B => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x6C => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x6D => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x6E => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x6F => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x70 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x71 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x72 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x73 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x74 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x75 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x76 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x77 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x78 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x79 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x7A => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x7B => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x7C => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x7D => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x7E => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x7F => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x80 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x81 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x82 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x83 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x84 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x85 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x86 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x87 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x88 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x89 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x8A => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x8B => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x8C => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x8D => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x8E => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x8F => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x90 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x91 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x92 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x93 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x94 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x95 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x96 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x97 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x98 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x99 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x9A => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x9B => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x9C => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x9D => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x9E => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0x9F => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xA0 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xA1 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xA2 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xA3 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xA4 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xA5 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xA6 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xA7 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xA8 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xA9 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xAA => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xAB => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xAC => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xAD => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xAE => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xAF => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xB0 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xB1 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xB2 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xB3 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xB4 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xB5 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xB6 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xB7 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xB8 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xB9 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xBA => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xBB => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xBC => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xBD => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xBE => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xBF => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xC0 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xC1 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xC2 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xC3 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xC4 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xC5 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xC6 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xC7 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xC8 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xC9 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xCA => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xCB => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xCC => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xCD => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xCE => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xCF => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xD0 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xD1 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xD2 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xD3 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xD4 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xD5 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xD6 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xD7 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xD8 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xD9 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xDA => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xDB => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xDC => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xDD => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xDE => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xDF => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xE0 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xE1 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xE2 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xE3 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xE4 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xE5 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xE6 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xE7 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xE8 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xE9 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xEA => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xEB => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xEC => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xED => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xEE => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xEF => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xF0 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xF1 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xF2 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xF3 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xF4 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xF5 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xF6 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xF7 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xF8 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xF9 => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xFA => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xFB => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xFC => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xFD => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xFE => Some((Opcode::ADC, AddressingMode::Absolute)),
+        0xFF => Some((Opcode::ADC, AddressingMode::Absolute)),
+        _ => {
+            None
+        },
     }
 }
 pub static OPCODES_STRING: [&str; 256] = [
@@ -577,3 +840,63 @@ pub static OPCODES_STRING: [&str; 256] = [
     " INC abx 7    $FE: bytes: 3 cycles: 7 _____=>____P RW absx",
     " *ISC abx     $FF: bytes: 3 cycles: 7 A___P=>A___P RW absx",
 ];
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Opcode {
+    ADC,
+    AND,
+    ASL,
+    BCC,
+    BCS,
+    BEQ,
+    BIT,
+    BMI,
+    BNE,
+    BPL,
+    BRK,
+    BVC,
+    BVS,
+    CLC,
+    CLD,
+    CLI,
+    CLV,
+    CMP,
+    CPX,
+    CPY,
+    DEC,
+    DEX,
+    DEY,
+    EOR,
+    INC,
+    INX,
+    INY,
+    JMP,
+    JSR,
+    LDA,
+    LDX,
+    LDY,
+    LSR,
+    NOP,
+    ORA,
+    PHA,
+    PHP,
+    PLA,
+    PLP,
+    ROL,
+    ROR,
+    RTI,
+    RTS,
+    SBC,
+    SEC,
+    SED,
+    SEI,
+    STA,
+    STX,
+    STY,
+    TAX,
+    TAY,
+    TSX,
+    TXA,
+    TXS,
+    TYA,
+}

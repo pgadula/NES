@@ -1,10 +1,9 @@
 
 use std::fmt::{self, write, Display, Formatter};
-use regex::Regex;
 
 use bitflags::bitflags;
 
-use crate::opcodes::OPCODES_STRING;
+use crate::opcodes::resolve_opcode;
 
 pub const STACK_BASE: u8 = 0x01;
 pub const VECTOR_BASE: u8 = 0xFF;
@@ -90,23 +89,9 @@ impl Mos6502 {
     pub fn fetch(&mut self){
         let opcode = self.bus.read(self.pc); 
         println!("0x{:02X}", opcode);
-        let description = OPCODES_STRING[opcode as usize];
-        println!("{}", description);
-    let re = Regex::new(r"bytes:\s*(\d+)").unwrap();
-
-    if let Some(caps) = re.captures(description) {
-        if let Some(bytes_str) = caps.get(1) {
-            let bytes: u8 = bytes_str.as_str().parse().unwrap();
-            println!("Instruction length: {} bytes", bytes);
-            self.pc+= (bytes as u16);
-            // You can now use `bytes` to increment the program counter, etc.
-        } else {
-            println!("Failed to extract byte count.");
-        }
-    } else {
-        println!("Regex didn't match the description.");
-    }();
-    }
+        let resolved =  resolve_opcode(opcode).unwrap();
+        println!("{:?}",resolved);
+   }
 
     fn take_pc_byte(&mut self)->u8{
         self.bus.read(self.pc)

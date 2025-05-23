@@ -1,9 +1,8 @@
-
 use std::fmt::{self, write, Display, Formatter};
 
 use bitflags::bitflags;
 
-use crate::opcodes::resolve_opcode;
+use crate::opcodes::{resolve_opcode, Instruction};
 
 pub const STACK_BASE: u8 = 0x01;
 pub const VECTOR_BASE: u8 = 0xFF;
@@ -12,7 +11,7 @@ pub const RESET_VECTOR: u8 = 0xFC;
 pub const NMI_VECTOR: u8 = 0xFA;
 
 #[derive(Debug)]
-pub struct Mos6502{
+pub struct Mos6502 {
     pub bus: Bus,
     pub pc: u16,
     pub p: PFlag,
@@ -20,81 +19,180 @@ pub struct Mos6502{
     pub x: u8,
     pub y: u8,
     pub sp: u8,
+
+    //
+    pub operand: u8,
+    pub abs_addr: u16,
 }
 
 #[derive(Debug)]
-pub struct Bus{
-    memory:[u8; 1024*2]
+pub struct Bus {
+    memory: [u8; 1024 * 2],
 }
 
 impl Bus {
-        pub fn new()->Bus{
-        return Bus{
-            memory: [0; 2048] 
-        } 
-        }
-        pub fn dump(&self){
-            println!("{}", self);
-        }
-        
-        pub fn read_u16(&mut self, hi:u8, le:u8)->u8{
+    pub fn new() -> Bus {
+        return Bus { memory: [0; 2048] };
+    }
+    pub fn dump(&self) {
+        println!("{}", self);
+    }
+
+    pub fn read_u16(&mut self, hi: u8, le: u8) -> u8 {
         let mut adr: u16 = le as u16;
         adr |= (hi as u16) << 8;
         println!("{:04X}", adr);
-        self.read(adr) 
-        }
+        self.read(adr)
+    }
 
-        pub fn read(& self, address: u16)->u8{
-            return self.memory[address as usize];
-        }
+    pub fn read(&self, address: u16) -> u8 {
+        return self.memory[address as usize];
+    }
 
-        pub fn write(&mut self, address: usize, value: u8){
-            self.memory[address] = value;
-        }
+    pub fn write(&mut self, address: usize, value: u8) {
+        self.memory[address] = value;
+    }
 
-        
-        pub fn write_bytes(&mut self, address: usize, value: &[u8]){
-            let mut start_address = address;
-            for byte in value {
-                self.write(start_address, *byte);
-                start_address+=1;
-            }
+    pub fn write_bytes(&mut self, address: usize, value: &[u8]) {
+        let mut start_address = address;
+        for byte in value {
+            self.write(start_address, *byte);
+            start_address += 1;
         }
+    }
 }
 
-
 impl Mos6502 {
-    pub fn new(bus: Bus)->Mos6502{
-        Mos6502{
-         a: 0,
-         p: PFlag::Carry,
-         pc: 0,
-         sp: 0,
-         x: 0,
-         y: 0,
-         bus,
-        } 
+    pub fn new(bus: Bus) -> Mos6502 {
+        Mos6502 {
+            a: 0,
+            p: PFlag::Carry,
+            pc: 0,
+            sp: 0,
+            x: 0,
+            y: 0,
+            bus,
+            //
+            operand: 0,
+            abs_addr: 0,
+        }
     }
-    pub fn reset(&mut self){
+    pub fn reset(&mut self) {
         let address = ((VECTOR_BASE as u16) << 8) | RESET_VECTOR as u16;
         let le = self.bus.read(address);
-        let hi = self.bus.read(address+1);
-        self.pc = Mos6502::get_address(hi, le);
+        let hi = self.bus.read(address + 1);
+        self.pc = Mos6502::get_address_from_bytes(hi, le);
     }
 
-    fn get_address(hi:u8, le:u8)->u16{
+    pub fn get_address_from_bytes(hi: u8, le: u8) -> u16 {
         ((le as u16) << 8) | (hi as u16)
     }
 
-    pub fn fetch(&mut self){
-        let opcode = self.bus.read(self.pc); 
+    pub fn fetch(&mut self) {
+        let opcode = self.bus.read(self.pc);
         println!("0x{:02X}", opcode);
-        let resolved =  resolve_opcode(opcode).unwrap();
-        println!("{:?}",resolved);
-   }
+        let resolved = resolve_opcode(opcode);
+        match resolved {
+            Some(instruction) => {
+                println!("{:?}\n", instruction);
+                self.execute(instruction);
+            }
+            None => println!("None\n"),
+        }
+    }
 
-    fn take_pc_byte(&mut self)->u8{
-        self.bus.read(self.pc)
+    fn execute(&mut self, instruction: Instruction) {
+        self.pc+=1;
+        match instruction.0 {
+            crate::opcodes::Opcode::ADC => {
+                instruction.1.ex(self);
+            }
+            crate::opcodes::Opcode::AND => todo!(),
+            crate::opcodes::Opcode::ASL => todo!(),
+            crate::opcodes::Opcode::BCC => todo!(),
+            crate::opcodes::Opcode::BCS => todo!(),
+            crate::opcodes::Opcode::BEQ => todo!(),
+            crate::opcodes::Opcode::BIT => todo!(),
+            crate::opcodes::Opcode::BMI => todo!(),
+            crate::opcodes::Opcode::BNE => todo!(),
+            crate::opcodes::Opcode::BPL => todo!(),
+            crate::opcodes::Opcode::BRK => todo!(),
+            crate::opcodes::Opcode::BVC => todo!(),
+            crate::opcodes::Opcode::BVS => todo!(),
+            crate::opcodes::Opcode::CLC => todo!(),
+            crate::opcodes::Opcode::CLD => todo!(),
+            crate::opcodes::Opcode::CLI => todo!(),
+            crate::opcodes::Opcode::CLV => todo!(),
+            crate::opcodes::Opcode::CMP => todo!(),
+            crate::opcodes::Opcode::CPX => todo!(),
+            crate::opcodes::Opcode::CPY => todo!(),
+            crate::opcodes::Opcode::DEC => todo!(),
+            crate::opcodes::Opcode::DEX => todo!(),
+            crate::opcodes::Opcode::DEY => todo!(),
+            crate::opcodes::Opcode::EOR => todo!(),
+            crate::opcodes::Opcode::INC => todo!(),
+            crate::opcodes::Opcode::INX => todo!(),
+            crate::opcodes::Opcode::INY => todo!(),
+            crate::opcodes::Opcode::JMP => todo!(),
+            crate::opcodes::Opcode::JSR => todo!(),
+            crate::opcodes::Opcode::LDA => {
+                instruction.1.ex(self);
+                println!("{}\n", self.abs_addr);
+                let value = self.bus.read(self.abs_addr);
+                println!("value: {}\n ", value);
+            },
+            crate::opcodes::Opcode::LDX => todo!(),
+            crate::opcodes::Opcode::LDY => todo!(),
+            crate::opcodes::Opcode::LSR => todo!(),
+            crate::opcodes::Opcode::NOP => todo!(),
+            crate::opcodes::Opcode::ORA => todo!(),
+            crate::opcodes::Opcode::PHA => todo!(),
+            crate::opcodes::Opcode::PHP => todo!(),
+            crate::opcodes::Opcode::PLA => todo!(),
+            crate::opcodes::Opcode::PLP => todo!(),
+            crate::opcodes::Opcode::ROL => todo!(),
+            crate::opcodes::Opcode::ROR => todo!(),
+            crate::opcodes::Opcode::RTI => todo!(),
+            crate::opcodes::Opcode::RTS => todo!(),
+            crate::opcodes::Opcode::SBC => todo!(),
+            crate::opcodes::Opcode::SEC => todo!(),
+            crate::opcodes::Opcode::SED => todo!(),
+            crate::opcodes::Opcode::SEI => todo!(),
+            crate::opcodes::Opcode::STA => todo!(),
+            crate::opcodes::Opcode::STX => todo!(),
+            crate::opcodes::Opcode::STY => todo!(),
+            crate::opcodes::Opcode::TAX => todo!(),
+            crate::opcodes::Opcode::TAY => todo!(),
+            crate::opcodes::Opcode::TSX => todo!(),
+            crate::opcodes::Opcode::TXA => todo!(),
+            crate::opcodes::Opcode::TXS => todo!(),
+            crate::opcodes::Opcode::TYA => todo!(),
+            crate::opcodes::Opcode::AHX => todo!(),
+            crate::opcodes::Opcode::ALR => todo!(),
+            crate::opcodes::Opcode::ANC => todo!(),
+            crate::opcodes::Opcode::ARR => todo!(),
+            crate::opcodes::Opcode::AXS => todo!(),
+            crate::opcodes::Opcode::DCP => todo!(),
+            crate::opcodes::Opcode::ISC => todo!(),
+            crate::opcodes::Opcode::KIL => todo!(),
+            crate::opcodes::Opcode::LAS => todo!(),
+            crate::opcodes::Opcode::LAX => todo!(),
+            crate::opcodes::Opcode::RLA => todo!(),
+            crate::opcodes::Opcode::RRA => todo!(),
+            crate::opcodes::Opcode::SAX => todo!(),
+            crate::opcodes::Opcode::SHX => todo!(),
+            crate::opcodes::Opcode::SHY => todo!(),
+            crate::opcodes::Opcode::SLO => todo!(),
+            crate::opcodes::Opcode::SRE => todo!(),
+            crate::opcodes::Opcode::TAS => todo!(),
+            crate::opcodes::Opcode::XAA => todo!(),
+        };
+    }
+
+    pub fn inc_pc(&mut self) -> u8 {
+        let addr = self.bus.read(self.pc);
+        self.pc+=1;
+        addr
     }
 }
 
@@ -106,7 +204,11 @@ impl Display for Mos6502 {
         writeln!(f, "├──────────────────────────────────┤")?;
 
         // Program counter & stack pointer
-        writeln!(f, "│ PC: 0x{:04X}   SP: 0x{:02X}            │", self.pc, self.sp)?;
+        writeln!(
+            f,
+            "│ PC: 0x{:04X}   SP: 0x{:02X}            │",
+            self.pc, self.sp
+        )?;
 
         // General‑purpose registers
         writeln!(
@@ -135,7 +237,7 @@ impl Display for Bus {
             }
 
             for _ in 0..(16 - chunk.len()) {
-                write!(f, "   ")?;       
+                write!(f, "   ")?;
             }
 
             write!(f, " | ")?;

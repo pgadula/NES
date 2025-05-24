@@ -2,7 +2,7 @@ use std::fmt::{self, write, Display, Formatter};
 
 use bitflags::bitflags;
 
-use crate::opcodes::{resolve_opcode, Instruction};
+use crate::opcodes::{resolve_opcode, Instruction, Opcode};
 
 pub const STACK_BASE: u8 = 0x01;
 pub const VECTOR_BASE: u8 = 0xFF;
@@ -84,8 +84,8 @@ impl Mos6502 {
         self.pc = Mos6502::get_address_from_bytes(hi, le);
     }
 
-    pub fn get_address_from_bytes(hi: u8, le: u8) -> u16 {
-        ((le as u16) << 8) | (hi as u16)
+    pub fn get_address_from_bytes(hi: u8, lo: u8) -> u16 {
+        u16::from(lo) + (u16::from(hi) << 8usize)
     }
 
     pub fn fetch(&mut self) {
@@ -102,96 +102,97 @@ impl Mos6502 {
     }
 
     fn execute(&mut self, instruction: Instruction) {
-        self.pc+=1;
+        self.pc += 1;
         match instruction.0 {
-            crate::opcodes::Opcode::ADC => {
+            Opcode::ADC => {
                 instruction.1.ex(self);
+                
             }
-            crate::opcodes::Opcode::AND => todo!(),
-            crate::opcodes::Opcode::ASL => todo!(),
-            crate::opcodes::Opcode::BCC => todo!(),
-            crate::opcodes::Opcode::BCS => todo!(),
-            crate::opcodes::Opcode::BEQ => todo!(),
-            crate::opcodes::Opcode::BIT => todo!(),
-            crate::opcodes::Opcode::BMI => todo!(),
-            crate::opcodes::Opcode::BNE => todo!(),
-            crate::opcodes::Opcode::BPL => todo!(),
-            crate::opcodes::Opcode::BRK => todo!(),
-            crate::opcodes::Opcode::BVC => todo!(),
-            crate::opcodes::Opcode::BVS => todo!(),
-            crate::opcodes::Opcode::CLC => todo!(),
-            crate::opcodes::Opcode::CLD => todo!(),
-            crate::opcodes::Opcode::CLI => todo!(),
-            crate::opcodes::Opcode::CLV => todo!(),
-            crate::opcodes::Opcode::CMP => todo!(),
-            crate::opcodes::Opcode::CPX => todo!(),
-            crate::opcodes::Opcode::CPY => todo!(),
-            crate::opcodes::Opcode::DEC => todo!(),
-            crate::opcodes::Opcode::DEX => todo!(),
-            crate::opcodes::Opcode::DEY => todo!(),
-            crate::opcodes::Opcode::EOR => todo!(),
-            crate::opcodes::Opcode::INC => todo!(),
-            crate::opcodes::Opcode::INX => todo!(),
-            crate::opcodes::Opcode::INY => todo!(),
-            crate::opcodes::Opcode::JMP => todo!(),
-            crate::opcodes::Opcode::JSR => todo!(),
-            crate::opcodes::Opcode::LDA => {
+            Opcode::AND => todo!(),
+            Opcode::ASL => todo!(),
+            Opcode::BCC => todo!(),
+            Opcode::BCS => todo!(),
+            Opcode::BEQ => todo!(),
+            Opcode::BIT => todo!(),
+            Opcode::BMI => todo!(),
+            Opcode::BNE => todo!(),
+            Opcode::BPL => todo!(),
+            Opcode::BRK => todo!(),
+            Opcode::BVC => todo!(),
+            Opcode::BVS => todo!(),
+            Opcode::CLC => todo!(),
+            Opcode::CLD => todo!(),
+            Opcode::CLI => todo!(),
+            Opcode::CLV => todo!(),
+            Opcode::CMP => todo!(),
+            Opcode::CPX => todo!(),
+            Opcode::CPY => todo!(),
+            Opcode::DEC => todo!(),
+            Opcode::DEX => todo!(),
+            Opcode::DEY => todo!(),
+            Opcode::EOR => todo!(),
+            Opcode::INC => todo!(),
+            Opcode::INX => todo!(),
+            Opcode::INY => todo!(),
+            Opcode::JMP => todo!(),
+            Opcode::JSR => todo!(),
+            Opcode::LDA => {
                 instruction.1.ex(self);
                 println!("{}\n", self.abs_addr);
                 let value = self.bus.read(self.abs_addr);
                 println!("value: {}\n ", value);
-            },
-            crate::opcodes::Opcode::LDX => todo!(),
-            crate::opcodes::Opcode::LDY => todo!(),
-            crate::opcodes::Opcode::LSR => todo!(),
-            crate::opcodes::Opcode::NOP => todo!(),
-            crate::opcodes::Opcode::ORA => todo!(),
-            crate::opcodes::Opcode::PHA => todo!(),
-            crate::opcodes::Opcode::PHP => todo!(),
-            crate::opcodes::Opcode::PLA => todo!(),
-            crate::opcodes::Opcode::PLP => todo!(),
-            crate::opcodes::Opcode::ROL => todo!(),
-            crate::opcodes::Opcode::ROR => todo!(),
-            crate::opcodes::Opcode::RTI => todo!(),
-            crate::opcodes::Opcode::RTS => todo!(),
-            crate::opcodes::Opcode::SBC => todo!(),
-            crate::opcodes::Opcode::SEC => todo!(),
-            crate::opcodes::Opcode::SED => todo!(),
-            crate::opcodes::Opcode::SEI => todo!(),
-            crate::opcodes::Opcode::STA => todo!(),
-            crate::opcodes::Opcode::STX => todo!(),
-            crate::opcodes::Opcode::STY => todo!(),
-            crate::opcodes::Opcode::TAX => todo!(),
-            crate::opcodes::Opcode::TAY => todo!(),
-            crate::opcodes::Opcode::TSX => todo!(),
-            crate::opcodes::Opcode::TXA => todo!(),
-            crate::opcodes::Opcode::TXS => todo!(),
-            crate::opcodes::Opcode::TYA => todo!(),
-            crate::opcodes::Opcode::AHX => todo!(),
-            crate::opcodes::Opcode::ALR => todo!(),
-            crate::opcodes::Opcode::ANC => todo!(),
-            crate::opcodes::Opcode::ARR => todo!(),
-            crate::opcodes::Opcode::AXS => todo!(),
-            crate::opcodes::Opcode::DCP => todo!(),
-            crate::opcodes::Opcode::ISC => todo!(),
-            crate::opcodes::Opcode::KIL => todo!(),
-            crate::opcodes::Opcode::LAS => todo!(),
-            crate::opcodes::Opcode::LAX => todo!(),
-            crate::opcodes::Opcode::RLA => todo!(),
-            crate::opcodes::Opcode::RRA => todo!(),
-            crate::opcodes::Opcode::SAX => todo!(),
-            crate::opcodes::Opcode::SHX => todo!(),
-            crate::opcodes::Opcode::SHY => todo!(),
-            crate::opcodes::Opcode::SLO => todo!(),
-            crate::opcodes::Opcode::SRE => todo!(),
-            crate::opcodes::Opcode::TAS => todo!(),
-            crate::opcodes::Opcode::XAA => todo!(),
+            }
+            Opcode::LDX => todo!(),
+            Opcode::LDY => todo!(),
+            Opcode::LSR => todo!(),
+            Opcode::NOP => todo!(),
+            Opcode::ORA => todo!(),
+            Opcode::PHA => todo!(),
+            Opcode::PHP => todo!(),
+            Opcode::PLA => todo!(),
+            Opcode::PLP => todo!(),
+            Opcode::ROL => todo!(),
+            Opcode::ROR => todo!(),
+            Opcode::RTI => todo!(),
+            Opcode::RTS => todo!(),
+            Opcode::SBC => todo!(),
+            Opcode::SEC => todo!(),
+            Opcode::SED => todo!(),
+            Opcode::SEI => todo!(),
+            Opcode::STA => todo!(),
+            Opcode::STX => todo!(),
+            Opcode::STY => todo!(),
+            Opcode::TAX => todo!(),
+            Opcode::TAY => todo!(),
+            Opcode::TSX => todo!(),
+            Opcode::TXA => todo!(),
+            Opcode::TXS => todo!(),
+            Opcode::TYA => todo!(),
+            Opcode::AHX => todo!(),
+            Opcode::ALR => todo!(),
+            Opcode::ANC => todo!(),
+            Opcode::ARR => todo!(),
+            Opcode::AXS => todo!(),
+            Opcode::DCP => todo!(),
+            Opcode::ISC => todo!(),
+            Opcode::KIL => todo!(),
+            Opcode::LAS => todo!(),
+            Opcode::LAX => todo!(),
+            Opcode::RLA => todo!(),
+            Opcode::RRA => todo!(),
+            Opcode::SAX => todo!(),
+            Opcode::SHX => todo!(),
+            Opcode::SHY => todo!(),
+            Opcode::SLO => todo!(),
+            Opcode::SRE => todo!(),
+            Opcode::TAS => todo!(),
+            Opcode::XAA => todo!(),
         };
     }
 
     pub fn inc_pc(&mut self) -> u8 {
         let addr = self.bus.read(self.pc);
-        self.pc+=1;
+        self.pc += 1;
         addr
     }
 }

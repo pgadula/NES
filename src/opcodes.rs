@@ -3,283 +3,6 @@ use std::ops::Add;
 use crate::m6502::Mos6502;
 pub type Instruction = (Opcode, AddressingMode);
 
-//add with carry
-pub fn adc(cpu: &mut Mos6502, am: AddressingMode) {}
-
-//and (with accumulator)
-pub fn and(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//arithmetic shift left
-pub fn asl(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//branch on carry clear
-pub fn bcc(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//branch on carry set
-pub fn bcs(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//branch on equal (zero set)
-pub fn beq(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//bit test
-pub fn bit(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//branch on minus (negative set)
-pub fn bmi(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//branch on not equal (zero clear)
-pub fn bne(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//branch on plus (negative clear)
-pub fn bpl(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//break / interrupt
-pub fn brk(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//branch on overflow clear
-pub fn bvc(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//branch on overflow set
-pub fn bvs(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//clear carry
-pub fn clc(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//clear decimal
-pub fn cld(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//clear interrupt disable
-pub fn cli(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//clear overflow
-pub fn clv(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//compare (with accumulator)
-pub fn cmp(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//compare with X
-pub fn cpx(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//compare with Y
-pub fn cpy(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//decrement
-pub fn dec(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//decrement X
-pub fn dex(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//decrement Y
-pub fn dey(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//exclusive or (with accumulator)
-pub fn eor(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//increment
-pub fn inc(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//increment X
-pub fn inx(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//increment Y
-pub fn iny(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//jump
-pub fn jmp(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//jump subroutine
-pub fn jsr(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//load accumulator
-pub fn lda(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//load X
-pub fn ldx(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//load Y
-pub fn ldy(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//logical shift right
-pub fn lsr(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//no operation
-pub fn nop(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//or with accumulator
-pub fn ora(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//push accumulator
-pub fn pha(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//push processor status (SR)
-pub fn php(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//pull accumulator
-pub fn pla(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//pull processor status (SR)
-pub fn plp(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//rotate left
-pub fn rol(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//rotate right
-pub fn ror(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//return from interrupt
-pub fn rti(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//return from subroutine
-pub fn rts(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//subtract with carry
-pub fn sbc(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//set carry
-pub fn sec(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//set decimal
-pub fn sed(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//set interrupt disable
-pub fn sei(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//store accumulator
-pub fn sta(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//store X
-pub fn stx(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//store Y
-pub fn sty(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//transfer accumulator to X
-pub fn tax(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//transfer accumulator to Y
-pub fn tay(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//transfer stack pointer to X
-pub fn tsx(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//transfer X to accumulator
-pub fn txa(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//transfer X to stack pointer
-pub fn txs(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
-
-//transfer Y to accumulator
-pub fn tya(cpu: &mut Mos6502, am: AddressingMode) {
-    todo!();
-}
 
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -328,11 +51,12 @@ impl AddressingMode {
         match self {
             Implied => {}
             Accumulator => {
-                cpu.operand = cpu.a;
+                cpu.fetched = cpu.a;
             }
             Immediate => {
                 let operand = cpu.inc_pc();
-                cpu.operand = operand;
+                cpu.abs_addr = operand as u16;
+                cpu.fetched = operand;
             }
             ZeroPage => {
                 let zero_page_addr = cpu.inc_pc() as u16;
@@ -353,19 +77,28 @@ impl AddressingMode {
             }
             Relative => todo!(),
             Absolute => {
-                let hh = cpu.inc_pc();
-                let lo: u8 = cpu.inc_pc();
-                cpu.abs_addr = Mos6502::get_address_from_bytes(hh, lo);
+                let lo = cpu.inc_pc();
+                let hh: u8 = cpu.inc_pc();
+                let addr = Mos6502::get_address_from_bytes(hh, lo);
+                println!(
+                   "{:#04x}", addr 
+                );
+                cpu.fetched = cpu.bus.read(addr);
+                cpu.abs_addr = addr;
             }
             XIndexedAbsolute => {
                 let hh = cpu.inc_pc();
                 let lo = cpu.inc_pc();
-                cpu.abs_addr = Mos6502::get_address_from_bytes(hh, lo.add(cpu.x));
+                let addr = Mos6502::get_address_from_bytes(hh, lo.add(cpu.x));
+                cpu.fetched = cpu.bus.read(addr);
+                cpu.abs_addr = addr;
             }
             YIndexedAbsolute => {
                 let hh = cpu.inc_pc();
                 let lo = cpu.inc_pc();
-                cpu.abs_addr = Mos6502::get_address_from_bytes(hh, lo.add(cpu.y));
+                let addr = Mos6502::get_address_from_bytes(hh, lo.add(cpu.y));
+                cpu.fetched = cpu.bus.read(addr);
+                cpu.abs_addr = addr;
             }
             AbsoluteIndirect => todo!(),
             BuggyIndirect => todo!(),

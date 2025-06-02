@@ -1,8 +1,11 @@
-use std::fmt::{self, write, Display, Formatter};
+use std::{
+    fmt::{self, write, Display, Formatter},
+    ops::Add,
+};
 
-use bitflags::bitflags;
+use bitflags::{bitflags, Flags};
 
-use crate::opcodes::{resolve_opcode, Instruction, Opcode};
+use crate::opcodes::{resolve_opcode, AddressingMode, Instruction, Opcode};
 
 pub const STACK_BASE: u8 = 0x01;
 pub const VECTOR_BASE: u8 = 0xFF;
@@ -21,18 +24,33 @@ pub struct Mos6502 {
     pub sp: u8,
 
     //
-    pub operand: u8,
+    pub fetched: u8,
+    pub rel_addr: u16,
     pub abs_addr: u16,
+}
+bitflags! {
+    #[derive(Debug)]
+    pub struct PFlag: u32 {
+       const Carry =            0b00000001;
+       const Zero =             0b00000010;
+       const InterruptDisable = 0b00000100;
+       const DecimalMode =      0b00001000;
+       const BreakCommand =     0b00010000;
+       const Overflow =         0b00100000;
+       const Negative =         0b01000000;
+    }
 }
 
 #[derive(Debug)]
 pub struct Bus {
-    memory: [u8; 1024 * 2],
+    memory: [u8; 0x10000],
 }
 
 impl Bus {
     pub fn new() -> Bus {
-        return Bus { memory: [0; 2048] };
+        return Bus {
+            memory: [0; 0x10000],
+        };
     }
     pub fn dump(&self) {
         println!("{}", self);
@@ -68,22 +86,24 @@ impl Mos6502 {
             a: 0,
             p: PFlag::Carry,
             pc: 0,
-            sp: 0,
+            sp: VECTOR_BASE,
             x: 0,
             y: 0,
             bus,
-            //
-            operand: 0,
+            //helpers
+            fetched: 0,
             abs_addr: 0,
+            rel_addr: 0,
         }
     }
     pub fn reset(&mut self) {
         let address = ((VECTOR_BASE as u16) << 8) | RESET_VECTOR as u16;
-        let le = self.bus.read(address);
+        let lo = self.bus.read(address);
         let hi = self.bus.read(address + 1);
-        self.pc = Mos6502::get_address_from_bytes(hi, le);
+        self.pc = Mos6502::get_address_from_bytes(hi, lo);
+        self.sp = VECTOR_BASE;
     }
-
+    //little endian low-order byte
     pub fn get_address_from_bytes(hi: u8, lo: u8) -> u16 {
         u16::from(lo) + (u16::from(hi) << 8usize)
     }
@@ -101,15 +121,54 @@ impl Mos6502 {
         }
     }
 
+    fn update_zero_flag(&mut self, value: u8) {
+        self.p.set(PFlag::Zero, value == 0);
+    }
+    fn update_neg_flag(&mut self, value: u8) {
+        self.p.set(PFlag::Negative, value & 0x80 > 0);
+    }
+    fn update_overflow_flag(&mut self, a: u8, operand: u8, sum: u8) {
+        self.p
+            .set(PFlag::Overflow, ((!(a ^ operand) & (a ^ sum)) & 0x80) != 0)
+    }
+
     fn execute(&mut self, instruction: Instruction) {
         self.pc += 1;
         match instruction.0 {
             Opcode::ADC => {
                 instruction.1.ex(self);
-                
+                let carrying = if self.p.contains(PFlag::Carry) { 1 } else { 0 };
+                let v1 = self.fetched as u16 + carrying;
+                let sum: u16 = self.a as u16 + v1;
+                let a = self.a as u16;
+                let is_carrying = sum > 0xFF;
+                if is_carrying {
+                    self.p |= PFlag::Carry;
+                } else {
+                    self.p &= !PFlag::Carry
+                }
+                self.update_overflow_flag(v1 as u8, a as u8, sum as u8);
+                self.a = sum as u8;
             }
-            Opcode::AND => todo!(),
-            Opcode::ASL => todo!(),
+            Opcode::AND => {
+                instruction.1.ex(self);
+                let value = self.a & self.fetched;
+                self.update_zero_flag(value);
+                self.update_neg_flag(value);
+                self.a = value;
+            }
+            Opcode::ASL => {
+                let mut value: u16 = 0;
+                if instruction.1 == AddressingMode::Implied {
+                    value = self.a as u16;
+                } else {
+                    instruction.1.ex(self);
+                    value = self.fetched as u16;
+                }
+                value = value << 1;
+                self.update_zero_flag(value as u8);
+                self.update_neg_flag(value as u8);
+            }
             Opcode::BCC => todo!(),
             Opcode::BCS => todo!(),
             Opcode::BEQ => todo!(),
@@ -120,30 +179,72 @@ impl Mos6502 {
             Opcode::BRK => todo!(),
             Opcode::BVC => todo!(),
             Opcode::BVS => todo!(),
-            Opcode::CLC => todo!(),
-            Opcode::CLD => todo!(),
-            Opcode::CLI => todo!(),
-            Opcode::CLV => todo!(),
+            Opcode::CLC => self.p.remove(PFlag::Carry),
+            Opcode::CLD => self.p.remove(PFlag::DecimalMode),
+            Opcode::CLI => self.p.remove(PFlag::InterruptDisable),
+            Opcode::CLV => self.p.remove(PFlag::Overflow),
             Opcode::CMP => todo!(),
             Opcode::CPX => todo!(),
             Opcode::CPY => todo!(),
-            Opcode::DEC => todo!(),
-            Opcode::DEX => todo!(),
-            Opcode::DEY => todo!(),
+            Opcode::DEC => {
+                instruction.1.ex(self);
+                let mut value = self.bus.read(self.abs_addr).wrapping_sub(1);
+                self.update_neg_flag(value);
+                self.update_zero_flag(value);
+                self.bus.write(self.abs_addr.into(), value);
+            }
+            Opcode::DEX => {
+                instruction.1.ex(self);
+                self.x = self.x.wrapping_sub(1);
+                self.update_neg_flag(self.x);
+                self.update_zero_flag(self.x);
+            }
+            Opcode::DEY => {
+                instruction.1.ex(self);
+                self.y = self.y.wrapping_sub(1);
+                self.update_neg_flag(self.y);
+                self.update_zero_flag(self.y);
+            }
             Opcode::EOR => todo!(),
-            Opcode::INC => todo!(),
-            Opcode::INX => todo!(),
-            Opcode::INY => todo!(),
+            Opcode::INC => {
+                instruction.1.ex(self);
+                let mut value = self.bus.read(self.abs_addr).wrapping_add(1);
+                self.update_neg_flag(value);
+                self.update_zero_flag(value);
+                self.bus.write(self.abs_addr.into(), value);
+            }
+            Opcode::INX => {
+                instruction.1.ex(self);
+                self.x = self.x.wrapping_add(1);
+                self.update_neg_flag(self.x);
+                self.update_zero_flag(self.x);
+            }
+            Opcode::INY => {
+                instruction.1.ex(self);
+                self.y = self.y.wrapping_add(1);
+                self.update_neg_flag(self.y);
+                self.update_zero_flag(self.y);
+            }
             Opcode::JMP => todo!(),
             Opcode::JSR => todo!(),
             Opcode::LDA => {
                 instruction.1.ex(self);
-                println!("{}\n", self.abs_addr);
-                let value = self.bus.read(self.abs_addr);
-                println!("value: {}\n ", value);
+                self.a = self.fetched;
+                self.update_neg_flag(self.fetched);
+                self.update_zero_flag(self.fetched);
             }
-            Opcode::LDX => todo!(),
-            Opcode::LDY => todo!(),
+            Opcode::LDX => {
+                instruction.1.ex(self);
+                self.x = self.fetched;
+                self.update_neg_flag(self.fetched);
+                self.update_zero_flag(self.fetched);
+            }
+            Opcode::LDY => {
+                instruction.1.ex(self);
+                self.y = self.fetched;
+                self.update_neg_flag(self.fetched);
+                self.update_zero_flag(self.fetched);
+            }
             Opcode::LSR => todo!(),
             Opcode::NOP => todo!(),
             Opcode::ORA => todo!(),
@@ -159,15 +260,53 @@ impl Mos6502 {
             Opcode::SEC => todo!(),
             Opcode::SED => todo!(),
             Opcode::SEI => todo!(),
-            Opcode::STA => todo!(),
-            Opcode::STX => todo!(),
-            Opcode::STY => todo!(),
-            Opcode::TAX => todo!(),
-            Opcode::TAY => todo!(),
-            Opcode::TSX => todo!(),
-            Opcode::TXA => todo!(),
-            Opcode::TXS => todo!(),
-            Opcode::TYA => todo!(),
+            Opcode::STA => {
+                instruction.1.ex(self);
+                self.bus.write(self.abs_addr as usize, self.a);
+            }
+            Opcode::STX => {
+                instruction.1.ex(self);
+                self.bus.write(self.abs_addr as usize, self.x);
+            }
+            Opcode::STY => {
+                instruction.1.ex(self);
+                self.bus.write(self.abs_addr as usize, self.y);
+            }
+            Opcode::TAX => {
+                instruction.1.ex(self);
+                self.x = self.a;
+                self.update_neg_flag(self.x);
+                self.update_zero_flag(self.x);
+ 
+            }
+            Opcode::TAY => {
+                instruction.1.ex(self);
+                self.y = self.a;
+                self.update_neg_flag(self.y);
+                self.update_zero_flag(self.y);
+            }
+            Opcode::TSX => {
+                instruction.1.ex(self);
+                self.x = self.sp;
+                self.update_neg_flag(self.x);
+                self.update_zero_flag(self.x);
+            }
+            Opcode::TXA => {
+                instruction.1.ex(self);
+                self.a = self.x;
+                self.update_neg_flag(self.a);
+                self.update_zero_flag(self.a);
+            }
+            Opcode::TXS => {
+                instruction.1.ex(self);
+                self.sp = self.x;
+            }
+            Opcode::TYA => {
+                instruction.1.ex(self);
+                self.a = self.y;
+                self.update_neg_flag(self.a);
+                self.update_zero_flag(self.a);
+            }
             Opcode::AHX => todo!(),
             Opcode::ALR => todo!(),
             Opcode::ANC => todo!(),
@@ -229,10 +368,17 @@ impl Display for Mos6502 {
 impl Display for Bus {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln!(f, "+---------------- 2 KiB RAM ----------------+")?;
-
+        writeln!(f)?;
+        writeln!(f, "----------------- ZERO PAGE -----------------")?;
         for (row, chunk) in self.memory.chunks(16).enumerate() {
+            let row16 = row * 16;
+            if row16 == 0x0100 {
+                writeln!(f, "----------------- STACK -----------------")?;
+            }
+            if row16 == 0x0200 {
+                writeln!(f, "----------------- RAM -----------------")?;
+            }
             write!(f, "{:04X} |", row * 16)?;
-
             for byte in chunk {
                 write!(f, " {:02X}", byte)?;
             }
@@ -250,18 +396,5 @@ impl Display for Bus {
             writeln!(f)?;
         }
         writeln!(f, "+-------------------------------------------+")
-    }
-}
-
-bitflags! {
-    #[derive(Debug)]
-    pub struct PFlag: u32 {
-        const Carry =            0b00000001;
-        const Zero =             0b00000010;
-        const InterruptDisable = 0b00000100;
-        const DecimalMode =      0b00001000;
-        const BreakCommand =     0b00010000;
-        const Overflow =         0b00100000;
-        const Negative =         0b01000000;
     }
 }

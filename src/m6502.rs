@@ -132,6 +132,10 @@ impl Mos6502 {
             .set(PFlag::Overflow, ((!(a ^ operand) & (a ^ sum)) & 0x80) != 0)
     }
 
+    fn update_carry_flag(&mut self, value:u16){
+            self.p.set(PFlag::Carry, value > 0xFF);
+    }
+
     fn execute(&mut self, instruction: Instruction) {
         self.pc += 1;
         match instruction.0 {
@@ -141,12 +145,7 @@ impl Mos6502 {
                 let v1 = self.fetched as u16 + carrying;
                 let sum: u16 = self.a as u16 + v1;
                 let a = self.a as u16;
-                let is_carrying = sum > 0xFF;
-                if is_carrying {
-                    self.p |= PFlag::Carry;
-                } else {
-                    self.p &= !PFlag::Carry
-                }
+                self.update_carry_flag(sum); 
                 self.update_overflow_flag(v1 as u8, a as u8, sum as u8);
                 self.a = sum as u8;
             }
@@ -168,11 +167,19 @@ impl Mos6502 {
                 value = value << 1;
                 self.update_zero_flag(value as u8);
                 self.update_neg_flag(value as u8);
+                self.update_carry_flag(value);
             }
             Opcode::BCC => todo!(),
             Opcode::BCS => todo!(),
             Opcode::BEQ => todo!(),
-            Opcode::BIT => todo!(),
+            Opcode::BIT => {
+                instruction.1.ex(self);
+                let value = self.a & self.fetched;
+
+                self.update_zero_flag(value);
+               self.p.set(PFlag::Negative, self.fetched & 0x80 != 0);
+               self.p.set(PFlag::Overflow, self.fetched &  0x40 != 0);
+            },
             Opcode::BMI => todo!(),
             Opcode::BNE => todo!(),
             Opcode::BPL => todo!(),
@@ -183,12 +190,30 @@ impl Mos6502 {
             Opcode::CLD => self.p.remove(PFlag::DecimalMode),
             Opcode::CLI => self.p.remove(PFlag::InterruptDisable),
             Opcode::CLV => self.p.remove(PFlag::Overflow),
-            Opcode::CMP => todo!(),
-            Opcode::CPX => todo!(),
-            Opcode::CPY => todo!(),
+            Opcode::CMP => {
+                instruction.1.ex(self);
+                let value = (self.a as u16).wrapping_sub(self.fetched as u16)  ;
+                self.update_neg_flag(value as u8);
+                self.update_zero_flag(value as u8);
+                self.update_carry_flag(value);
+            },
+            Opcode::CPX => {
+                instruction.1.ex(self);
+                let value = (self.x as u16).wrapping_sub(self.fetched as u16)  ;
+                self.update_carry_flag(value);
+                self.update_zero_flag(value as u8);
+                self.update_neg_flag(value as u8);                                
+            },
+            Opcode::CPY => {
+                instruction.1.ex(self);
+                let value = (self.y as u16).wrapping_sub(self.fetched as u16)  ;
+                self.update_carry_flag(value);
+                self.update_neg_flag(value as u8);                                
+                self.update_zero_flag(value as u8);
+            },
             Opcode::DEC => {
                 instruction.1.ex(self);
-                let mut value = self.bus.read(self.abs_addr).wrapping_sub(1);
+                let value = self.bus.read(self.abs_addr).wrapping_sub(1);
                 self.update_neg_flag(value);
                 self.update_zero_flag(value);
                 self.bus.write(self.abs_addr.into(), value);
@@ -205,7 +230,13 @@ impl Mos6502 {
                 self.update_neg_flag(self.y);
                 self.update_zero_flag(self.y);
             }
-            Opcode::EOR => todo!(),
+            Opcode::EOR => {
+                instruction.1.ex(self);
+                let value = self.a ^ self.fetched;
+                self.update_zero_flag(value);
+                self.update_neg_flag(value);
+                self.a = value;
+            },
             Opcode::INC => {
                 instruction.1.ex(self);
                 let mut value = self.bus.read(self.abs_addr).wrapping_add(1);
@@ -247,7 +278,14 @@ impl Mos6502 {
             }
             Opcode::LSR => todo!(),
             Opcode::NOP => todo!(),
-            Opcode::ORA => todo!(),
+            Opcode::ORA =>{
+                instruction.1.ex(self);
+                let value = self.a | self.fetched;
+                self.update_zero_flag(value);
+                self.update_neg_flag(value);
+                self.a = value;
+
+            },
             Opcode::PHA => todo!(),
             Opcode::PHP => todo!(),
             Opcode::PLA => todo!(),
@@ -257,9 +295,18 @@ impl Mos6502 {
             Opcode::RTI => todo!(),
             Opcode::RTS => todo!(),
             Opcode::SBC => todo!(),
-            Opcode::SEC => todo!(),
-            Opcode::SED => todo!(),
-            Opcode::SEI => todo!(),
+            Opcode::SEC =>{
+                instruction.1.ex(self);
+                self.p.set(PFlag::Carry, true);
+            },
+            Opcode::SED =>{
+                instruction.1.ex(self);
+                self.p.set(PFlag::DecimalMode, true);
+            },
+            Opcode::SEI => {
+                instruction.1.ex(self);
+                self.p.set(PFlag::InterruptDisable, true);
+            },
             Opcode::STA => {
                 instruction.1.ex(self);
                 self.bus.write(self.abs_addr as usize, self.a);

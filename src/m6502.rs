@@ -256,7 +256,18 @@ impl Mos6502 {
                 self.update_neg_flag(self.y);
                 self.update_zero_flag(self.y);
             }
-            Opcode::JMP => todo!(),
+            Opcode::JMP => {
+                instruction.1.ex(self);
+                match instruction.1{
+                    AddressingMode::Absolute =>{
+                        self.pc = self.abs_addr; 
+
+                    }, 
+                    _=>{
+
+                    }
+                }
+            },
             Opcode::JSR => todo!(),
             Opcode::LDA => {
                 instruction.1.ex(self);

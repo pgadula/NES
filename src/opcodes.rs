@@ -3,30 +3,22 @@ use std::ops::Add;
 use crate::m6502::Mos6502;
 pub type Instruction = (Opcode, AddressingMode);
 
-
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum AddressingMode {
-    // 1-bytes
-    BuggyIndirect,
-    Implied,
-    Accumulator,
-
-    // 2-bytes
-    Immediate,
-    ZeroPage,
-    XIndexedZeroPage, // ($zp,X)
-    YIndexedZeroPage, // ($zp),Y
-    XIndexedZeroPageIndirect,
-    ZeroPageIndirectYIndexed,
-    ZeroPageIndirectXIndexed,
-    Relative,
-
-    // 3-bytes
-    Absolute,
-    XIndexedAbsolute,
-    YIndexedAbsolute,
-    AbsoluteIndirect,
+    Implied,     // e.g., CLC
+    Accumulator, // e.g., ASL A
+    Immediate,   // e.g., LDA #$01
+    ZeroPage,    // e.g., LDA $00
+    ZeroPageX,   // e.g., LDA $00,X
+    ZeroPageY,   // e.g., LDX $00,Y (only some instructions use Y here)
+    Relative,    // e.g., BNE label
+    Absolute,    // e.g., JMP $1234
+    AbsoluteX,   // e.g., LDA $1234,X
+    AbsoluteY,   // e.g., LDA $1234,Y
+    Indirect,    // JMP ($1234)
+    IndirectX,   // LDA ($20,X)
+    IndirectY,   // LDA ($20),Y
 }
 
 impl AddressingMode {
@@ -34,16 +26,8 @@ impl AddressingMode {
         use AddressingMode::*;
         match self {
             Implied | Accumulator => 1,
-            Immediate
-            | ZeroPage
-            | XIndexedZeroPageIndirect
-            | XIndexedZeroPage
-            | YIndexedZeroPage
-            | ZeroPageIndirectXIndexed
-            | ZeroPageIndirectYIndexed
-            | Relative => 2,
-            Absolute | XIndexedAbsolute | YIndexedAbsolute | AbsoluteIndirect => 3,
-            BuggyIndirect => todo!(),
+            Immediate | ZeroPage | ZeroPageX | ZeroPageY | Relative | IndirectX | IndirectY => 2,
+            Absolute | AbsoluteX | AbsoluteY | Indirect => 3,
         }
     }
     pub fn ex(self, cpu: &mut Mos6502) {
@@ -62,16 +46,11 @@ impl AddressingMode {
                 let zero_page_addr = cpu.inc_pc() as u16;
                 cpu.abs_addr = zero_page_addr;
             }
-            XIndexedZeroPage => {
+            ZeroPageX => {
                 let zero_page_addr = cpu.inc_pc().wrapping_add(cpu.x);
                 cpu.abs_addr = zero_page_addr as u16;
             }
-            YIndexedZeroPage => {
-                let zero_page_addr = cpu.inc_pc().wrapping_add(cpu.y);
-                cpu.abs_addr = zero_page_addr as u16;
-            }
-            XIndexedZeroPageIndirect => todo!(),
-            ZeroPageIndirectYIndexed => {
+            ZeroPageY => {
                 let zero_page_addr = cpu.inc_pc().wrapping_add(cpu.y);
                 cpu.abs_addr = zero_page_addr as u16;
             }
@@ -80,36 +59,49 @@ impl AddressingMode {
                 let lo = cpu.inc_pc();
                 let hh: u8 = cpu.inc_pc();
                 let addr = Mos6502::get_address_from_bytes(hh, lo);
-                println!(
-                   "{:#04x}", addr 
-                );
+                println!("{:#04x}", addr);
                 cpu.fetched = cpu.bus.read(addr);
                 cpu.abs_addr = addr;
             }
-            XIndexedAbsolute => {
-                let hh = cpu.inc_pc();
+            AbsoluteX => {
                 let lo = cpu.inc_pc();
-                let addr = Mos6502::get_address_from_bytes(hh, lo.add(cpu.x));
-                cpu.fetched = cpu.bus.read(addr);
-                cpu.abs_addr = addr;
-            }
-            YIndexedAbsolute => {
                 let hh = cpu.inc_pc();
-                let lo = cpu.inc_pc();
-                let addr = Mos6502::get_address_from_bytes(hh, lo.add(cpu.y));
+                let addr = Mos6502::get_address_from_bytes(hh, lo).wrapping_add(cpu.x as u16);
                 cpu.fetched = cpu.bus.read(addr);
                 cpu.abs_addr = addr;
             }
-            AbsoluteIndirect => todo!(),
-            BuggyIndirect => todo!(),
-            ZeroPageIndirectXIndexed => todo!(),
+            AbsoluteY => {
+                let lo = cpu.inc_pc();
+                let hh = cpu.inc_pc();
+                let addr = Mos6502::get_address_from_bytes(hh, lo).wrapping_add(cpu.y as u16);
+                cpu.fetched = cpu.bus.read(addr);
+                cpu.abs_addr = addr;
+            }
+            Indirect => {}
+            IndirectX => {
+                let mut byte = cpu.inc_pc();
+                byte = byte.wrapping_add(cpu.x);
+
+                let lo = cpu.bus.read(byte as u16);
+                let hi = cpu.bus.read((byte.wrapping_add(1)) as u16 & 0x00FF);
+                cpu.abs_addr = Mos6502::get_address_from_bytes(hi, lo);
+                cpu.fetched = cpu.bus.read(cpu.abs_addr);
+            }
+            IndirectY => {
+                let addr = cpu.inc_pc() as u16;
+
+                let lo = cpu.bus.read(addr as u16);
+                let hi = cpu.bus.read((addr.wrapping_add(1)) as u16 & 0x00FF);
+                cpu.abs_addr = Mos6502::get_address_from_bytes(hi, lo).wrapping_add(cpu.y as u16);
+                cpu.fetched = cpu.bus.read(cpu.abs_addr);
+            }
         }
     }
 }
 pub fn resolve_opcode(n: u8) -> Option<Instruction> {
     match n {
         0x00 => Some((Opcode::BRK, AddressingMode::Implied)),
-        0x01 => Some((Opcode::ORA, AddressingMode::ZeroPageIndirectXIndexed)),
+        0x01 => Some((Opcode::ORA, AddressingMode::IndirectX)),
         0x02 => None,
         0x03 => None,
         0x04 => None,
@@ -125,23 +117,23 @@ pub fn resolve_opcode(n: u8) -> Option<Instruction> {
         0x0e => Some((Opcode::ASL, AddressingMode::Absolute)),
         0x0f => None,
         0x10 => Some((Opcode::BPL, AddressingMode::Relative)),
-        0x11 => Some((Opcode::ORA, AddressingMode::ZeroPageIndirectXIndexed)),
+        0x11 => Some((Opcode::ORA, AddressingMode::IndirectY)),
         0x12 => None,
         0x13 => None,
         0x14 => None,
-        0x15 => Some((Opcode::ORA, AddressingMode::XIndexedZeroPage)),
-        0x16 => Some((Opcode::ASL, AddressingMode::XIndexedZeroPage)),
+        0x15 => Some((Opcode::ORA, AddressingMode::ZeroPageX)),
+        0x16 => Some((Opcode::ASL, AddressingMode::ZeroPageX)),
         0x17 => None,
         0x18 => Some((Opcode::CLC, AddressingMode::Implied)),
-        0x19 => Some((Opcode::ORA, AddressingMode::YIndexedAbsolute)),
+        0x19 => Some((Opcode::ORA, AddressingMode::AbsoluteY)),
         0x1a => None,
         0x1b => None,
         0x1c => None,
-        0x1d => Some((Opcode::ORA, AddressingMode::XIndexedAbsolute)),
-        0x1e => Some((Opcode::ASL, AddressingMode::XIndexedAbsolute)),
+        0x1d => Some((Opcode::ORA, AddressingMode::AbsoluteX)),
+        0x1e => Some((Opcode::ASL, AddressingMode::AbsoluteX)),
         0x1f => None,
         0x20 => Some((Opcode::JSR, AddressingMode::Absolute)),
-        0x21 => Some((Opcode::AND, AddressingMode::ZeroPageIndirectXIndexed)),
+        0x21 => Some((Opcode::AND, AddressingMode::IndirectX)),
         0x22 => None,
         0x23 => None,
         0x24 => Some((Opcode::BIT, AddressingMode::ZeroPage)),
@@ -157,23 +149,23 @@ pub fn resolve_opcode(n: u8) -> Option<Instruction> {
         0x2e => Some((Opcode::ROL, AddressingMode::Absolute)),
         0x2f => None,
         0x30 => Some((Opcode::BMI, AddressingMode::Relative)),
-        0x31 => Some((Opcode::AND, AddressingMode::ZeroPageIndirectXIndexed)),
+        0x31 => Some((Opcode::AND, AddressingMode::IndirectY)),
         0x32 => None,
         0x33 => None,
         0x34 => None,
-        0x35 => Some((Opcode::AND, AddressingMode::XIndexedZeroPage)),
-        0x36 => Some((Opcode::ROL, AddressingMode::XIndexedZeroPage)),
+        0x35 => Some((Opcode::AND, AddressingMode::ZeroPageX)),
+        0x36 => Some((Opcode::ROL, AddressingMode::ZeroPageX)),
         0x37 => None,
         0x38 => Some((Opcode::SEC, AddressingMode::Implied)),
-        0x39 => Some((Opcode::AND, AddressingMode::YIndexedAbsolute)),
+        0x39 => Some((Opcode::AND, AddressingMode::AbsoluteY)),
         0x3a => None,
         0x3b => None,
         0x3c => None,
-        0x3d => Some((Opcode::AND, AddressingMode::XIndexedAbsolute)),
-        0x3e => Some((Opcode::ROL, AddressingMode::XIndexedAbsolute)),
+        0x3d => Some((Opcode::AND, AddressingMode::AbsoluteX)),
+        0x3e => Some((Opcode::ROL, AddressingMode::AbsoluteX)),
         0x3f => None,
         0x40 => Some((Opcode::RTI, AddressingMode::Implied)),
-        0x41 => Some((Opcode::EOR, AddressingMode::ZeroPageIndirectXIndexed)),
+        0x41 => Some((Opcode::EOR, AddressingMode::IndirectX)),
         0x42 => None,
         0x43 => None,
         0x44 => None,
@@ -189,23 +181,23 @@ pub fn resolve_opcode(n: u8) -> Option<Instruction> {
         0x4e => Some((Opcode::LSR, AddressingMode::Absolute)),
         0x4f => None,
         0x50 => Some((Opcode::BVC, AddressingMode::Relative)),
-        0x51 => Some((Opcode::EOR, AddressingMode::ZeroPageIndirectYIndexed)),
+        0x51 => Some((Opcode::EOR, AddressingMode::IndirectY)),
         0x52 => None,
         0x53 => None,
         0x54 => None,
-        0x55 => Some((Opcode::EOR, AddressingMode::XIndexedZeroPage)),
-        0x56 => Some((Opcode::LSR, AddressingMode::XIndexedZeroPage)),
+        0x55 => Some((Opcode::EOR, AddressingMode::ZeroPageX)),
+        0x56 => Some((Opcode::LSR, AddressingMode::ZeroPageX)),
         0x57 => None,
         0x58 => Some((Opcode::CLI, AddressingMode::Implied)),
-        0x59 => Some((Opcode::EOR, AddressingMode::YIndexedAbsolute)),
+        0x59 => Some((Opcode::EOR, AddressingMode::AbsoluteY)),
         0x5a => None,
         0x5b => None,
         0x5c => None,
-        0x5d => Some((Opcode::EOR, AddressingMode::XIndexedAbsolute)),
-        0x5e => Some((Opcode::LSR, AddressingMode::XIndexedAbsolute)),
+        0x5d => Some((Opcode::EOR, AddressingMode::AbsoluteX)),
+        0x5e => Some((Opcode::LSR, AddressingMode::AbsoluteX)),
         0x5f => None,
         0x60 => Some((Opcode::RTS, AddressingMode::Implied)),
-        0x61 => Some((Opcode::ADC, AddressingMode::XIndexedZeroPageIndirect)),
+        0x61 => Some((Opcode::ADC, AddressingMode::IndirectX)),
         0x62 => None,
         0x63 => None,
         0x64 => None,
@@ -216,28 +208,28 @@ pub fn resolve_opcode(n: u8) -> Option<Instruction> {
         0x69 => Some((Opcode::ADC, AddressingMode::Immediate)),
         0x6a => Some((Opcode::ROR, AddressingMode::Accumulator)),
         0x6b => None,
-        0x6c => Some((Opcode::JMP, AddressingMode::BuggyIndirect)),
+        0x6c => Some((Opcode::JMP, AddressingMode::Indirect)),
         0x6d => Some((Opcode::ADC, AddressingMode::Absolute)),
         0x6e => Some((Opcode::ROR, AddressingMode::Absolute)),
         0x6f => None,
         0x70 => Some((Opcode::BVS, AddressingMode::Relative)),
-        0x71 => Some((Opcode::ADC, AddressingMode::ZeroPageIndirectXIndexed)),
+        0x71 => Some((Opcode::ADC, AddressingMode::IndirectY)),
         0x72 => None,
         0x73 => None,
         0x74 => None,
-        0x75 => Some((Opcode::ADC, AddressingMode::XIndexedZeroPage)),
-        0x76 => Some((Opcode::ROR, AddressingMode::XIndexedZeroPage)),
+        0x75 => Some((Opcode::ADC, AddressingMode::ZeroPageX)),
+        0x76 => Some((Opcode::ROR, AddressingMode::ZeroPageX)),
         0x77 => None,
         0x78 => Some((Opcode::SEI, AddressingMode::Implied)),
-        0x79 => Some((Opcode::ADC, AddressingMode::YIndexedAbsolute)),
+        0x79 => Some((Opcode::ADC, AddressingMode::AbsoluteY)),
         0x7a => None,
         0x7b => None,
         0x7c => None,
-        0x7d => Some((Opcode::ADC, AddressingMode::XIndexedAbsolute)),
-        0x7e => Some((Opcode::ROR, AddressingMode::XIndexedAbsolute)),
+        0x7d => Some((Opcode::ADC, AddressingMode::AbsoluteX)),
+        0x7e => Some((Opcode::ROR, AddressingMode::AbsoluteX)),
         0x7f => None,
         0x80 => None,
-        0x81 => Some((Opcode::STA, AddressingMode::ZeroPageIndirectXIndexed)),
+        0x81 => Some((Opcode::STA, AddressingMode::IndirectX)),
         0x82 => None,
         0x83 => None,
         0x84 => Some((Opcode::STY, AddressingMode::ZeroPage)),
@@ -253,23 +245,23 @@ pub fn resolve_opcode(n: u8) -> Option<Instruction> {
         0x8e => Some((Opcode::STX, AddressingMode::Absolute)),
         0x8f => None,
         0x90 => Some((Opcode::BCC, AddressingMode::Relative)),
-        0x91 => Some((Opcode::STA, AddressingMode::ZeroPageIndirectXIndexed)),
+        0x91 => Some((Opcode::STA, AddressingMode::IndirectY)),
         0x92 => None,
         0x93 => None,
-        0x94 => Some((Opcode::STY, AddressingMode::XIndexedZeroPage)),
-        0x95 => Some((Opcode::STA, AddressingMode::XIndexedZeroPage)),
-        0x96 => Some((Opcode::STX, AddressingMode::YIndexedZeroPage)),
+        0x94 => Some((Opcode::STY, AddressingMode::ZeroPageX)),
+        0x95 => Some((Opcode::STA, AddressingMode::ZeroPageX)),
+        0x96 => Some((Opcode::STX, AddressingMode::ZeroPageY)),
         0x97 => None,
         0x98 => Some((Opcode::TYA, AddressingMode::Implied)),
-        0x99 => Some((Opcode::STA, AddressingMode::YIndexedAbsolute)),
+        0x99 => Some((Opcode::STA, AddressingMode::AbsoluteY)),
         0x9a => Some((Opcode::TXS, AddressingMode::Implied)),
         0x9b => None,
         0x9c => None,
-        0x9d => Some((Opcode::STA, AddressingMode::XIndexedAbsolute)),
+        0x9d => Some((Opcode::STA, AddressingMode::AbsoluteX)),
         0x9e => None,
         0x9f => None,
         0xa0 => Some((Opcode::LDY, AddressingMode::Immediate)),
-        0xa1 => Some((Opcode::LDA, AddressingMode::ZeroPageIndirectXIndexed)),
+        0xa1 => Some((Opcode::LDA, AddressingMode::IndirectX)),
         0xa2 => Some((Opcode::LDX, AddressingMode::Immediate)),
         0xa3 => None,
         0xa4 => Some((Opcode::LDY, AddressingMode::ZeroPage)),
@@ -285,23 +277,23 @@ pub fn resolve_opcode(n: u8) -> Option<Instruction> {
         0xae => Some((Opcode::LDX, AddressingMode::Absolute)),
         0xaf => None,
         0xb0 => Some((Opcode::BCS, AddressingMode::Relative)),
-        0xb1 => Some((Opcode::LDA, AddressingMode::ZeroPageIndirectYIndexed)),
+        0xb1 => Some((Opcode::LDA, AddressingMode::IndirectY)),
         0xb2 => None,
         0xb3 => None,
-        0xb4 => Some((Opcode::LDY, AddressingMode::XIndexedZeroPage)),
-        0xb5 => Some((Opcode::LDA, AddressingMode::XIndexedZeroPage)),
-        0xb6 => Some((Opcode::LDX, AddressingMode::YIndexedZeroPage)),
+        0xb4 => Some((Opcode::LDY, AddressingMode::ZeroPageX)),
+        0xb5 => Some((Opcode::LDA, AddressingMode::ZeroPageX)),
+        0xb6 => Some((Opcode::LDX, AddressingMode::ZeroPageY)),
         0xb7 => None,
         0xb8 => Some((Opcode::CLV, AddressingMode::Implied)),
-        0xb9 => Some((Opcode::LDA, AddressingMode::YIndexedAbsolute)),
+        0xb9 => Some((Opcode::LDA, AddressingMode::AbsoluteY)),
         0xba => Some((Opcode::TSX, AddressingMode::Implied)),
         0xbb => None,
-        0xbc => Some((Opcode::LDY, AddressingMode::XIndexedAbsolute)),
-        0xbd => Some((Opcode::LDA, AddressingMode::XIndexedAbsolute)),
-        0xbe => Some((Opcode::LDX, AddressingMode::YIndexedAbsolute)),
+        0xbc => Some((Opcode::LDY, AddressingMode::AbsoluteX)),
+        0xbd => Some((Opcode::LDA, AddressingMode::AbsoluteX)),
+        0xbe => Some((Opcode::LDX, AddressingMode::AbsoluteY)),
         0xbf => None,
         0xc0 => Some((Opcode::CPY, AddressingMode::Immediate)),
-        0xc1 => Some((Opcode::CMP, AddressingMode::ZeroPageIndirectXIndexed)),
+        0xc1 => Some((Opcode::CMP, AddressingMode::IndirectX)),
         0xc2 => None,
         0xc3 => None,
         0xc4 => Some((Opcode::CPY, AddressingMode::ZeroPage)),
@@ -317,23 +309,23 @@ pub fn resolve_opcode(n: u8) -> Option<Instruction> {
         0xce => Some((Opcode::DEC, AddressingMode::Absolute)),
         0xcf => None,
         0xd0 => Some((Opcode::BNE, AddressingMode::Relative)),
-        0xd1 => Some((Opcode::CMP, AddressingMode::ZeroPageIndirectYIndexed)),
+        0xd1 => Some((Opcode::CMP, AddressingMode::IndirectY)),
         0xd2 => None,
         0xd3 => None,
         0xd4 => None,
-        0xd5 => Some((Opcode::CMP, AddressingMode::XIndexedZeroPage)),
-        0xd6 => Some((Opcode::DEC, AddressingMode::XIndexedZeroPage)),
+        0xd5 => Some((Opcode::CMP, AddressingMode::ZeroPageX)),
+        0xd6 => Some((Opcode::DEC, AddressingMode::ZeroPageX)),
         0xd7 => None,
         0xd8 => Some((Opcode::CLD, AddressingMode::Implied)),
-        0xd9 => Some((Opcode::CMP, AddressingMode::YIndexedAbsolute)),
+        0xd9 => Some((Opcode::CMP, AddressingMode::AbsoluteY)),
         0xda => None,
         0xdb => None,
         0xdc => None,
-        0xdd => Some((Opcode::CMP, AddressingMode::XIndexedAbsolute)),
-        0xde => Some((Opcode::DEC, AddressingMode::XIndexedAbsolute)),
+        0xdd => Some((Opcode::CMP, AddressingMode::AbsoluteX)),
+        0xde => Some((Opcode::DEC, AddressingMode::AbsoluteX)),
         0xdf => None,
         0xe0 => Some((Opcode::CPX, AddressingMode::Immediate)),
-        0xe1 => Some((Opcode::SBC, AddressingMode::XIndexedZeroPageIndirect)),
+        0xe1 => Some((Opcode::SBC, AddressingMode::IndirectX)),
         0xe2 => None,
         0xe3 => None,
         0xe4 => Some((Opcode::CPX, AddressingMode::ZeroPage)),
@@ -349,20 +341,20 @@ pub fn resolve_opcode(n: u8) -> Option<Instruction> {
         0xee => Some((Opcode::INC, AddressingMode::Absolute)),
         0xef => None,
         0xf0 => Some((Opcode::BEQ, AddressingMode::Relative)),
-        0xf1 => Some((Opcode::SBC, AddressingMode::ZeroPageIndirectYIndexed)),
+        0xf1 => Some((Opcode::SBC, AddressingMode::IndirectY)),
         0xf2 => None,
         0xf3 => None,
         0xf4 => None,
-        0xf5 => Some((Opcode::SBC, AddressingMode::XIndexedZeroPage)),
-        0xf6 => Some((Opcode::INC, AddressingMode::XIndexedZeroPage)),
+        0xf5 => Some((Opcode::SBC, AddressingMode::ZeroPageX)),
+        0xf6 => Some((Opcode::INC, AddressingMode::ZeroPageX)),
         0xf7 => None,
         0xf8 => Some((Opcode::SED, AddressingMode::Implied)),
-        0xf9 => Some((Opcode::SBC, AddressingMode::YIndexedAbsolute)),
+        0xf9 => Some((Opcode::SBC, AddressingMode::AbsoluteY)),
         0xfa => None,
         0xfb => None,
         0xfc => None,
-        0xfd => Some((Opcode::SBC, AddressingMode::XIndexedAbsolute)),
-        0xfe => Some((Opcode::INC, AddressingMode::XIndexedAbsolute)),
+        0xfd => Some((Opcode::SBC, AddressingMode::AbsoluteX)),
+        0xfe => Some((Opcode::INC, AddressingMode::AbsoluteX)),
         0xff => None,
         _ => None,
     }

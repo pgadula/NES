@@ -30,27 +30,26 @@ fn main() {
         0xE0, 0x80, // CPX #$80
         0x24, 0x00, // BIT $00
     ];
-    cpu.bus.write_bytes(0x30, &program1);
+    let program3 = [
+        0x78, 0x18, 0xF8, 0x08, 0xD8, 0x28, 0x00
+    ];
+    println!("{}", cpu);
+    cpu.bus.write_bytes(0x30, &program3);
     cpu.pc = 0x30;
-    println!("{}", cpu);
+  
     cpu.fetch();
-    println!("{}", cpu);
+    cpu.dump();
     cpu.fetch();
-    println!("{}", cpu);
+    cpu.dump();
     cpu.fetch();
-    println!("{}", cpu);
+    cpu.dump();
     cpu.fetch();
-    println!("{}", cpu);
-    // cpu.fetch();
-    // println!("{}", cpu);
-    // cpu.fetch();
-    // println!("{}", cpu);
-
+    cpu.dump();
+    cpu.fetch();
+    cpu.dump();
+    cpu.fetch();
+    cpu.dump();
     cpu.bus.dump();
-    // cpu.fetch();
-    // cpu.fetch();
-    // cpu.fetch();
-    // cpu.fetch();
     // cpu.fetch();
     // cpu.fetch();
     // cpu.fetch();

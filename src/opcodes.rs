@@ -54,7 +54,10 @@ impl AddressingMode {
                 let zero_page_addr = cpu.inc_pc().wrapping_add(cpu.y);
                 cpu.abs_addr = zero_page_addr as u16;
             }
-            Relative => todo!(),
+            Relative => {
+               let value = cpu.inc_pc();
+               cpu.fetched = value; 
+            },
             Absolute => {
                 let lo = cpu.inc_pc();
                 let hh: u8 = cpu.inc_pc();
@@ -77,7 +80,9 @@ impl AddressingMode {
                 cpu.fetched = cpu.bus.read(addr);
                 cpu.abs_addr = addr;
             }
-            Indirect => {}
+            Indirect => {
+                // 6502 JMP supports only absolute addressing (16-bit operand); no zero-page or immediate forms exist.
+            }
             IndirectX => {
                 let mut byte = cpu.inc_pc();
                 byte = byte.wrapping_add(cpu.x);

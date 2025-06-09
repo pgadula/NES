@@ -13,7 +13,7 @@ fn main() {
     // cpu.pc.to_le_bytes()
     // cpu.reset();
 
-    // println!("{}", cpu.bus);
+    // println!("{}", cpu.bus)  ;
     let program = [
         0xA9, 0x42, 0xAA, 0xA8, 0x8D, 0x00, 0x02, 0x8E, 0x01, 0x02, 0x8C, 0x02, 0x02,
     ];

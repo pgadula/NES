@@ -172,7 +172,7 @@ impl Mos6502 {
                 self.p.set(PFlag::Carry, (value & 0x100) != 0);
                 if instruction.1 == AddressingMode::Implied {
                     self.a = value as u8
-                }else{
+                } else {
                     self.bus.write(self.abs_addr as usize, value as u8);
                 }
             }
@@ -189,14 +189,14 @@ impl Mos6502 {
                     let offset = self.fetched as i8 as i32;
                     self.pc = (self.pc as i32 + offset) as u16;
                 }
-            },
+            }
             Opcode::BEQ => {
                 instruction.1.ex(self);
                 if self.p.contains(PFlag::Zero) {
                     let offset = self.fetched as i8 as i32;
                     self.pc = (self.pc as i32 + offset) as u16;
                 }
-            } 
+            }
             Opcode::BIT => {
                 instruction.1.ex(self);
                 let value = self.a & self.fetched;
@@ -211,48 +211,53 @@ impl Mos6502 {
                     let offset = self.fetched as i8 as i32;
                     self.pc = (self.pc as i32 + offset) as u16;
                 }
-            },
+            }
             Opcode::BNE => {
                 instruction.1.ex(self);
                 if !self.p.contains(PFlag::Zero) {
                     let offset = self.fetched as i8 as i32;
                     self.pc = (self.pc as i32 + offset) as u16;
                 }
-            },
+            }
             Opcode::BPL => {
                 instruction.1.ex(self);
-                if !self.p.contains(PFlag::Negative ) {
+                if !self.p.contains(PFlag::Negative) {
                     let offset = self.fetched as i8 as i32;
                     self.pc = (self.pc as i32 + offset) as u16;
                 }
-            },
+            }
             Opcode::BRK => {
+                instruction.1.ex(self);
                 let ret_address = self.pc;
-                let high_byte :u8 = (ret_address >> 8) as u8; 
-                let low_byte :u8 = (ret_address & 0xFF) as u8; 
-                self.push(high_byte);
+                let high_byte: u8 = (ret_address >> 8) as u8;
+                let low_byte: u8 = (ret_address & 0xFF) as u8;
                 self.push(low_byte);
+                self.push(high_byte);
                 let reg = self.p.bits() | PFlag::BreakCommand.bits() | PFlag::Unused.bits();
                 self.push(reg);
                 self.p.set(PFlag::InterruptDisable, true);
-                let lo = self.bus.read(Mos6502::get_address_from_bytes(VECTOR_BASE, IRQ_BRK_VECTOR));
-                let hi = self.bus.read(Mos6502::get_address_from_bytes(VECTOR_BASE, VECTOR_BASE));
+                let lo = self
+                    .bus
+                    .read(Mos6502::get_address_from_bytes(VECTOR_BASE, IRQ_BRK_VECTOR));
+                let hi = self
+                    .bus
+                    .read(Mos6502::get_address_from_bytes(VECTOR_BASE, VECTOR_BASE));
                 self.pc = Mos6502::get_address_from_bytes(hi, lo)
-            },
+            }
             Opcode::BVC => {
                 instruction.1.ex(self);
-                if !self.p.contains(PFlag::Overflow ) {
+                if !self.p.contains(PFlag::Overflow) {
                     let offset = self.fetched as i8 as i32;
                     self.pc = (self.pc as i32 + offset) as u16;
                 }
-            },
+            }
             Opcode::BVS => {
                 instruction.1.ex(self);
-                if self.p.contains(PFlag::Overflow ) {
+                if self.p.contains(PFlag::Overflow) {
                     let offset = self.fetched as i8 as i32;
                     self.pc = (self.pc as i32 + offset) as u16;
                 }
-            },
+            }
             Opcode::CLC => self.p.remove(PFlag::Carry),
             Opcode::CLD => self.p.remove(PFlag::DecimalMode),
             Opcode::CLI => self.p.remove(PFlag::InterruptDisable),
@@ -343,16 +348,18 @@ impl Mos6502 {
                     }
                     _ => {
                         eprintln!("Unsupported addressing mode {:?}", instruction.1)
-                    } } }
+                    }
+                }
+            }
             Opcode::JSR => {
                 instruction.1.ex(self);
                 let ret_address = self.pc.wrapping_sub(1);
-                let high_byte :u8 = (ret_address >> 8) as u8; 
-                let low_byte :u8 = (ret_address & 0xFF) as u8; 
+                let high_byte: u8 = (ret_address >> 8) as u8;
+                let low_byte: u8 = (ret_address & 0xFF) as u8;
                 self.push(high_byte);
                 self.push(low_byte);
                 self.pc = self.abs_addr;
-            },
+            }
             Opcode::LDA => {
                 instruction.1.ex(self);
                 self.a = self.fetched;
@@ -373,16 +380,16 @@ impl Mos6502 {
             }
             Opcode::LSR => {
                 instruction.1.ex(self);
-                self.p.set(PFlag::Carry, self.fetched & 0x01 != 0); 
+                self.p.set(PFlag::Carry, self.fetched & 0x01 != 0);
                 let temp = self.fetched as u16 >> 1;
                 self.p.set(PFlag::Negative, false);
                 if instruction.1 == AddressingMode::Implied {
                     self.a = temp as u8
-                }else{
+                } else {
                     self.bus.write(self.abs_addr as usize, temp as u8);
                 }
-                self.update_zero_flag(temp as u8); 
-            },
+                self.update_zero_flag(temp as u8);
+            }
             Opcode::NOP => eprintln!("NOP"),
             Opcode::ORA => {
                 instruction.1.ex(self);
@@ -412,60 +419,66 @@ impl Mos6502 {
             }
             Opcode::ROL => {
                 instruction.1.ex(self);
-                let carry_in:u16 = if self.p.contains(PFlag::Carry){
-                    1
-                }else{
-                    0
-                };
-                let carry_out = (self.fetched & 0b10000000)!= 0;
-                let temp = (self.fetched as u16) << 1 | carry_in ;
-                self.p.set(PFlag::Negative, (temp & 0x80) !=0);
+                let carry_in: u16 = if self.p.contains(PFlag::Carry) { 1 } else { 0 };
+                let carry_out = (self.fetched & 0b10000000) != 0;
+                let temp = (self.fetched as u16) << 1 | carry_in;
+                self.p.set(PFlag::Negative, (temp & 0x80) != 0);
                 self.p.set(PFlag::Carry, carry_out);
                 if instruction.1 == AddressingMode::Implied {
                     self.a = temp as u8
-                }else{
+                } else {
                     self.bus.write(self.abs_addr as usize, temp as u8);
                 }
-                self.update_zero_flag(temp as u8); 
-
-            },
+                self.update_zero_flag(temp as u8);
+            }
             Opcode::ROR => {
                 instruction.1.ex(self);
-                let carry_in:u8 = if self.p.contains(PFlag::Carry){
-                    1
-                }else{
-                    0
-                };
-                let carry_out = (self.fetched & 0x01)!= 0;
-                let temp = (self.fetched) >> 1 | (carry_in << 7)  ;
-                self.p.set(PFlag::Negative, (temp & 0x80) !=0);
+                let carry_in: u8 = if self.p.contains(PFlag::Carry) { 1 } else { 0 };
+                let carry_out = (self.fetched & 0x01) != 0;
+                let temp = (self.fetched) >> 1 | (carry_in << 7);
+                self.p.set(PFlag::Negative, (temp & 0x80) != 0);
                 self.p.set(PFlag::Carry, carry_out);
                 if instruction.1 == AddressingMode::Implied {
                     self.a = temp as u8
-                }else{
+                } else {
                     self.bus.write(self.abs_addr as usize, temp as u8);
                 }
-                self.update_zero_flag(temp as u8); 
-            },
+                self.update_zero_flag(temp as u8);
+            }
             Opcode::RTI => {
-                let registers = self.pop(); 
+                instruction.1.ex(self);
+                let registers = self.pop();
                 let pc_l = self.pop();
                 let pc_h = self.pop();
                 self.p = PFlag::from_bits(registers).unwrap();
-                self.p.set(PFlag::Unused, true); 
+                self.p.set(PFlag::Unused, true);
                 self.pc = Mos6502::get_address_from_bytes(pc_h, pc_l)
-            },
+            }
             Opcode::RTS => {
                 instruction.1.ex(self);
                 let low_byte = self.pop();
                 let high_byte = self.pop();
                 self.pc = Mos6502::get_address_from_bytes(high_byte, low_byte).wrapping_add(1)
-            },
-            Opcode::SBC => todo!(),
+            }
+            Opcode::SBC => {
+                instruction.1.ex(self);
+
+                let value = self.fetched ^ 0xFF; 
+                let carry_in = if self.p.contains(PFlag::Carry) { 1 } else { 0 };
+
+                let sum = self.a as u16 + value as u16 + carry_in;
+
+                self.update_carry_flag(sum); 
+                self.update_overflow_flag(value as u8, self.a, sum as u8);
+
+                self.a = sum as u8;
+                self.update_zero_flag(self.a);
+                self.update_neg_flag(self.a);
+            }
             Opcode::SEC => {
                 instruction.1.ex(self);
                 self.p.set(PFlag::Carry, true);
-            },
+            }
             Opcode::SED => {
                 instruction.1.ex(self);
                 self.p.set(PFlag::DecimalMode, true);

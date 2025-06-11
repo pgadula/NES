@@ -227,7 +227,17 @@ impl Mos6502 {
                 }
             },
             Opcode::BRK => {
-
+                let ret_address = self.pc;
+                let high_byte :u8 = (ret_address >> 8) as u8; 
+                let low_byte :u8 = (ret_address & 0xFF) as u8; 
+                self.push(high_byte);
+                self.push(low_byte);
+                let reg = self.p.bits() | PFlag::BreakCommand.bits() | PFlag::Unused.bits();
+                self.push(reg);
+                self.p.set(PFlag::InterruptDisable, true);
+                let lo = self.bus.read(Mos6502::get_address_from_bytes(VECTOR_BASE, IRQ_BRK_VECTOR));
+                let hi = self.bus.read(Mos6502::get_address_from_bytes(VECTOR_BASE, VECTOR_BASE));
+                self.pc = Mos6502::get_address_from_bytes(hi, lo)
             },
             Opcode::BVC => {
                 instruction.1.ex(self);

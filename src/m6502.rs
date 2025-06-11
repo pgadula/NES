@@ -159,7 +159,7 @@ impl Mos6502 {
                 self.a = value;
             }
             Opcode::ASL => {
-                let mut value: u16 = 0;
+                let mut value: u16;
                 if instruction.1 == AddressingMode::Implied {
                     value = self.a as u16;
                 } else {
@@ -169,7 +169,12 @@ impl Mos6502 {
                 value = value << 1;
                 self.update_zero_flag(value as u8);
                 self.update_neg_flag(value as u8);
-                self.update_carry_flag(value);
+                self.p.set(PFlag::Carry, (value & 0x100) != 0);
+                if instruction.1 == AddressingMode::Implied {
+                    self.a = value as u8
+                }else{
+                    self.bus.write(self.abs_addr as usize, value as u8);
+                }
             }
             Opcode::BCC => {
                 instruction.1.ex(self);
@@ -330,7 +335,13 @@ impl Mos6502 {
                         eprintln!("Unsupported addressing mode {:?}", instruction.1)
                     } } }
             Opcode::JSR => {
-
+                instruction.1.ex(self);
+                let ret_address = self.pc.wrapping_sub(1);
+                let high_byte :u8 = (ret_address >> 8) as u8; 
+                let low_byte :u8 = (ret_address & 0xFF) as u8; 
+                self.push(high_byte);
+                self.push(low_byte);
+                self.pc = self.abs_addr;
             },
             Opcode::LDA => {
                 instruction.1.ex(self);
@@ -426,13 +437,25 @@ impl Mos6502 {
                 }
                 self.update_zero_flag(temp as u8); 
             },
-            Opcode::RTI => todo!(),
-            Opcode::RTS => todo!(),
+            Opcode::RTI => {
+                let registers = self.pop(); 
+                let pc_l = self.pop();
+                let pc_h = self.pop();
+                self.p = PFlag::from_bits(registers).unwrap();
+                self.p.set(PFlag::Unused, true); 
+                self.pc = Mos6502::get_address_from_bytes(pc_h, pc_l)
+            },
+            Opcode::RTS => {
+                instruction.1.ex(self);
+                let low_byte = self.pop();
+                let high_byte = self.pop();
+                self.pc = Mos6502::get_address_from_bytes(high_byte, low_byte).wrapping_add(1)
+            },
             Opcode::SBC => todo!(),
             Opcode::SEC => {
                 instruction.1.ex(self);
                 self.p.set(PFlag::Carry, true);
-            }
+            },
             Opcode::SED => {
                 instruction.1.ex(self);
                 self.p.set(PFlag::DecimalMode, true);

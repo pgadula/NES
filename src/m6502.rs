@@ -1,6 +1,6 @@
 use std::fmt::{self, Display, Formatter};
 
-use bitflags::{bitflags, Flags};
+use bitflags::{bitflags};
 
 use crate::opcodes::{resolve_opcode, AddressingMode, Instruction, Opcode};
 
@@ -62,6 +62,10 @@ impl Bus {
 
     pub fn read(&self, address: u16) -> u8 {
         return self.memory[address as usize];
+    }
+
+    pub fn irq(&self){
+        
     }
 
     pub fn write(&mut self, address: usize, value: u8) {
@@ -238,10 +242,10 @@ impl Mos6502 {
                 self.p.set(PFlag::InterruptDisable, true);
                 let lo = self
                     .bus
-                    .read(Mos6502::get_address_from_bytes(VECTOR_BASE, IRQ_BRK_VECTOR));
+                    .read(0xFFFE);
                 let hi = self
                     .bus
-                    .read(Mos6502::get_address_from_bytes(VECTOR_BASE, VECTOR_BASE));
+                    .read(0xFFFF);
                 self.pc = Mos6502::get_address_from_bytes(hi, lo)
             }
             Opcode::BVC => {
@@ -463,12 +467,12 @@ impl Mos6502 {
             Opcode::SBC => {
                 instruction.1.ex(self);
 
-                let value = self.fetched ^ 0xFF; 
+                let value = self.fetched ^ 0xFF;
                 let carry_in = if self.p.contains(PFlag::Carry) { 1 } else { 0 };
 
                 let sum = self.a as u16 + value as u16 + carry_in;
 
-                self.update_carry_flag(sum); 
+                self.update_carry_flag(sum);
                 self.update_overflow_flag(value as u8, self.a, sum as u8);
 
                 self.a = sum as u8;

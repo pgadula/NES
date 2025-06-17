@@ -5,9 +5,7 @@ use bitflags::bitflags;
 use crate::opcodes::{resolve_opcode, AddressingMode, Instruction, Opcode};
 
 pub const VECTOR_BASE: u8 = 0xFF;
-pub const IRQ_BRK_VECTOR: u8 = 0xFE;
 pub const RESET_VECTOR: u8 = 0xFC;
-pub const NMI_VECTOR: u8 = 0xFA;
 
 #[derive(Debug)]
 pub struct Mos6502 {
@@ -558,25 +556,6 @@ impl Mos6502 {
                 self.update_neg_flag(self.a);
                 self.update_zero_flag(self.a);
             }
-            Opcode::AHX => todo!(),
-            Opcode::ALR => todo!(),
-            Opcode::ANC => todo!(),
-            Opcode::ARR => todo!(),
-            Opcode::AXS => todo!(),
-            Opcode::DCP => todo!(),
-            Opcode::ISC => todo!(),
-            Opcode::KIL => todo!(),
-            Opcode::LAS => todo!(),
-            Opcode::LAX => todo!(),
-            Opcode::RLA => todo!(),
-            Opcode::RRA => todo!(),
-            Opcode::SAX => todo!(),
-            Opcode::SHX => todo!(),
-            Opcode::SHY => todo!(),
-            Opcode::SLO => todo!(),
-            Opcode::SRE => todo!(),
-            Opcode::TAS => todo!(),
-            Opcode::XAA => todo!(),
         };
     }
 

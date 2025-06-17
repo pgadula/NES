@@ -30,7 +30,7 @@ impl AddressingMode {
             Absolute | AbsoluteX | AbsoluteY | Indirect => 3,
         }
     }
-    pub fn ex(self, cpu: &mut Mos6502) {
+    pub fn apply(self, cpu: &mut Mos6502) {
         use AddressingMode::*;
         match self {
             Implied => {}

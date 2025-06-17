@@ -1,6 +1,6 @@
 use std::fmt::{self, Display, Formatter};
 
-use bitflags::{bitflags};
+use bitflags::bitflags;
 
 use crate::opcodes::{resolve_opcode, AddressingMode, Instruction, Opcode};
 
@@ -64,10 +64,6 @@ impl Bus {
         return self.memory[address as usize];
     }
 
-    pub fn irq(&self){
-        
-    }
-
     pub fn write(&mut self, address: usize, value: u8) {
         self.memory[address] = value;
     }
@@ -102,6 +98,34 @@ impl Mos6502 {
         println!("{}", self)
     }
 
+   //hardware interrupts  
+    pub fn nmi(&mut self) {
+        self.push((self.pc >> 8) as u8); 
+        self.push(self.pc as u8);
+        let mut flags = self.p.bits();
+        flags &= !(1 << 4); // Clear Break flag
+        self.push(flags);
+        self.p.set(PFlag::InterruptDisable, true); 
+        let lo = self.bus.read(0xFFFA); 
+        let hi = self.bus.read(0xFFFB); 
+        self.pc = Mos6502::get_address_from_bytes(hi, lo);
+    }
+
+    pub fn irq(&mut self) {
+        if self.p.contains(PFlag::InterruptDisable) {
+            return;
+        }
+        self.push((self.pc >> 8) as u8);
+        self.push(self.pc as u8);
+        let mut flags = self.p.bits();
+        flags &= !(1 << 4);
+        self.push(flags);
+        self.p.set(PFlag::InterruptDisable, true);
+        let lo = self.bus.read(0xFFFE);
+        let hi = self.bus.read(0xFFFF);
+        self.pc = Mos6502::get_address_from_bytes(hi, lo)
+    }
+
     pub fn reset(&mut self) {
         let address = ((VECTOR_BASE as u16) << 8) | RESET_VECTOR as u16;
         let lo = self.bus.read(address);
@@ -109,6 +133,7 @@ impl Mos6502 {
         self.pc = Mos6502::get_address_from_bytes(hi, lo);
         self.sp = VECTOR_BASE;
     }
+    //
     //little endian low-order byte
     pub fn get_address_from_bytes(hi: u8, lo: u8) -> u16 {
         u16::from(lo) + (u16::from(hi) << 8usize)
@@ -240,12 +265,8 @@ impl Mos6502 {
                 let reg = self.p.bits() | PFlag::BreakCommand.bits() | PFlag::Unused.bits();
                 self.push(reg);
                 self.p.set(PFlag::InterruptDisable, true);
-                let lo = self
-                    .bus
-                    .read(0xFFFE);
-                let hi = self
-                    .bus
-                    .read(0xFFFF);
+                let lo = self.bus.read(0xFFFE);
+                let hi = self.bus.read(0xFFFF);
                 self.pc = Mos6502::get_address_from_bytes(hi, lo)
             }
             Opcode::BVC => {

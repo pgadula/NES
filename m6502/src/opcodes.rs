@@ -1,6 +1,4 @@
-use std::ops::Add;
-
-use crate::m6502::Mos6502;
+use crate::cpu::Mos6502;
 pub type Instruction = (Opcode, AddressingMode);
 
 #[repr(u8)]

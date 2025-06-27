@@ -5,7 +5,7 @@ mod tests {
         io::{self, BufRead}, path::Path,
     };
 
-    use m6502::{cartridge::Cartridge, helper::hex_dump};
+    use m6502::{cartridge::Cartridge, helpers::hex_dump};
 
     #[test]
     fn nestests() {

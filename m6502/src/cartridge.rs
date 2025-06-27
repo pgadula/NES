@@ -1,8 +1,8 @@
 use bitflags::bitflags;
 use std::{
     fs::File,
-    io::{self, Error, Read, Seek},
-    path::{Display, Path},
+    io::{self, Error, Read},
+    path::Path,
 };
 
 const NES_CONSTANT: [u8; 4] = [0x4E, 0x45, 0x53, 0x1A];
@@ -42,6 +42,10 @@ impl Cartridge {
         let mut result = File::open(path)?;
         let mut buf = Vec::new();
         result.read_to_end(&mut buf)?;
+        if buf.len() < 7 {
+            return Err(io::Error::new(io::ErrorKind::InvalidData, "Buffer to short"));
+        }
+        
         let prg_size = buf[4];
         let chr_size = buf[5];
         let flag6 = buf[6];
@@ -59,6 +63,14 @@ impl Cartridge {
         let offset = if self.flag_6.contains(FLAG6::Trainer) {512} else {0}; 
         let start = 16 + offset;
         let end = start + 16384 * self.prg_size as usize;
+        &self.bytes[start..end]
+    }
+
+     pub fn chr_rom_data(&self)->&[u8]{
+        let offset = if self.flag_6.contains(FLAG6::Trainer) {512} else {0}; 
+        let pgr_offset = 16 + offset;
+        let start = pgr_offset + 16384 * self.prg_size as usize;
+        let end = start + 8192 * self.chr_size as usize;
         &self.bytes[start..end]
     }
 }

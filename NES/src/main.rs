@@ -1,19 +1,12 @@
-use std::{io::Error, path::Path};
+use std::{cell::RefCell, io::Error, path::Path, rc::Rc};
 
-use m6502::{cartridge::Cartridge, cpu::{Bus, Mos6502}};
-
+use m6502::{cartridge::Cartridge, cpu::{Bus, Mos6502}, helpers::hex_dump};
 
 fn main()->Result<(), Error> {
-    let bus = Bus::new();
+    let cartridge = Rc::new(RefCell::new(Cartridge::load_rom(Path::new("/Users/pgadula/Programming/NES/m6502/resources/sm.nes"))?));
+    let mut bus = Bus::new();
+    bus.load_cartridge(cartridge.clone());
+    hex_dump( &cartridge.borrow().bytes);
     let mut cpu = Mos6502::new(bus);
-    // adc(&mut cpu);
-    // println!("{}", cpu);
-    // println!("{}", cpu.bus);
-    // cpu.pc.to_le_bytes()
-    // cpu.reset();
-
-    // println!("{}", cpu.bus)  ;
-    let c = Cartridge::load_rom(Path::new("/Users/pgadula/Programming/m6502/m6502/resources/nestest.nes"))?;
-
     Ok(())
 }

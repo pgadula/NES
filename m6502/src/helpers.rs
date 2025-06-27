@@ -1,4 +1,4 @@
-pub fn hex_dump(buff: Vec<u8>) {
+pub fn hex_dump(buff: &[u8]) {
     for (i, chunk) in buff.chunks(16).enumerate() {
         print!("{:08X}  ", i * 16);
         for byte in chunk {
@@ -13,3 +13,4 @@ pub fn hex_dump(buff: Vec<u8>) {
         println!("|");
     }
 }
+

@@ -1,8 +1,8 @@
-use std::fmt::{self, Display, Formatter};
+use std::{cell::RefCell, fmt::{self, Display, Formatter}, rc::Rc};
 
 use bitflags::bitflags;
 
-use crate::opcodes::{resolve_opcode, AddressingMode, Instruction, Opcode};
+use crate::{cartridge::Cartridge, opcodes::{resolve_opcode, AddressingMode, Instruction, Opcode}};
 
 pub const VECTOR_BASE: u8 = 0xFF;
 pub const RESET_VECTOR: u8 = 0xFC;
@@ -39,18 +39,24 @@ bitflags! {
 #[derive(Debug)]
 pub struct Bus {
     memory: [u8; 0x10000],
+    cartridge: Option<Rc<RefCell<Cartridge>>>
 }
 
 impl Bus {
     pub fn new() -> Bus {
         return Bus {
             memory: [0; 0x10000],
+            cartridge: None,
         };
     }
     pub fn dump(&self) {
         println!("{}", self);
     }
 
+    pub fn load_cartridge(&mut self, cartridge: Rc<RefCell<Cartridge>>) {
+        self.cartridge = Some(cartridge);
+    }
+     
     pub fn read(&self, address: u16) -> u8 {
         return self.memory[address as usize];
     }
@@ -89,16 +95,16 @@ impl Mos6502 {
         println!("{}", self)
     }
 
-   //hardware interrupts  
     pub fn nmi(&mut self) {
-        self.push((self.pc >> 8) as u8); 
+        self.push((self.pc >> 8) as u8);
         self.push(self.pc as u8);
         let mut flags = self.p.bits();
-        flags &= !(1 << 4); // Clear Break flag
+        flags &= !(1 << 4);
         self.push(flags);
-        self.p.set(PFlag::InterruptDisable, true); 
-        let lo = self.bus.read(0xFFFA); 
-        let hi = self.bus.read(0xFFFB); 
+
+        self.p.set(PFlag::InterruptDisable, true);
+        let lo = self.bus.read(0xFFFA);
+        let hi = self.bus.read(0xFFFB);
         self.pc = Mos6502::get_address_from_bytes(hi, lo);
     }
 
@@ -124,8 +130,7 @@ impl Mos6502 {
         self.pc = Mos6502::get_address_from_bytes(hi, lo);
         self.sp = VECTOR_BASE;
     }
-    
-    
+
     //little endian low-order byte
     pub fn get_address_from_bytes(hi: u8, lo: u8) -> u16 {
         u16::from(lo) + (u16::from(hi) << 8usize)

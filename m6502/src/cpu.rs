@@ -2,14 +2,14 @@ use std::{cell::RefCell, fmt::{self, Display, Formatter}, rc::Rc};
 
 use bitflags::bitflags;
 
-use crate::{cartridge::Cartridge, opcodes::{resolve_opcode, AddressingMode, Instruction, Opcode}};
+use crate::{cartridge::{self, Cartridge}, opcodes::{resolve_opcode, AddressingMode, Instruction, Opcode}};
 
 pub const VECTOR_BASE: u8 = 0xFF;
 pub const RESET_VECTOR: u8 = 0xFC;
 
 #[derive(Debug)]
 pub struct Mos6502 {
-    pub bus: Bus,
+    pub bus: MainBus,
     pub pc: u16,
     pub p: PFlag,
     pub a: u8,
@@ -37,15 +37,15 @@ bitflags! {
 }
 
 #[derive(Debug)]
-pub struct Bus {
-    memory: [u8; 0x10000],
-    cartridge: Option<Rc<RefCell<Cartridge>>>
+pub struct MainBus {
+    cpuRam: [u8; 0x10000],
+    pub cartridge: Option<Rc<RefCell<Cartridge>>>
 }
 
-impl Bus {
-    pub fn new() -> Bus {
-        return Bus {
-            memory: [0; 0x10000],
+impl MainBus {
+    pub fn new() -> MainBus {
+        return MainBus {
+            cpuRam: [0; 0x10000],
             cartridge: None,
         };
     }
@@ -58,11 +58,23 @@ impl Bus {
     }
      
     pub fn read(&self, address: u16) -> u8 {
-        return self.memory[address as usize];
+        let addr = address as usize;
+        if  addr <= 0x1FFF{
+            return self.cpuRam[addr & 0x07FF] 
+        }
+        if let Some(cartridge) = self.cartridge.as_ref(){
+            let mut c = cartridge.borrow_mut();
+            c.bytes[addr as usize]
+        }else{
+            self.cpuRam[addr as usize]
+        }
     }
 
     pub fn write(&mut self, address: usize, value: u8) {
-        self.memory[address] = value;
+        let addr = address as usize;
+        if  addr <= 0x1FFF{
+            self.cpuRam[addr & 0x07FF] = value;
+        }
     }
 
     pub fn write_bytes(&mut self, address: usize, value: &[u8]) {
@@ -75,7 +87,7 @@ impl Bus {
 }
 
 impl Mos6502 {
-    pub fn new(bus: Bus) -> Mos6502 {
+    pub fn new(bus: MainBus) -> Mos6502 {
         Mos6502 {
             a: 0,
             p: PFlag::Unused | PFlag::InterruptDisable,
@@ -607,12 +619,12 @@ impl Display for Mos6502 {
     }
 }
 
-impl Display for Bus {
+impl Display for MainBus {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln!(f, "+---------------- 2 KiB RAM ----------------+")?;
         writeln!(f)?;
         writeln!(f, "----------------- ZERO PAGE -----------------")?;
-        for (row, chunk) in self.memory.chunks(16).enumerate() {
+        for (row, chunk) in self.cpuRam.chunks(16).enumerate() {
             let row16 = row * 16;
             if row16 == 0x0100 {
                 writeln!(f, "----------------- STACK -----------------")?;

@@ -1,26 +1,31 @@
 #[cfg(test)]
 mod tests {
     use std::{
-        fs::File,
-        io::{self, BufRead}, path::Path,
+        cell::RefCell, fs::File, io::{self, BufRead}, path::Path, rc::Rc
     };
 
-    use m6502::{cartridge::Cartridge, helpers::hex_dump};
+    use m6502::{cartridge::Cartridge, cpu::MainBus};
 
     #[test]
     fn nestests() {
-        let c = Cartridge::load_rom(Path::new("./resources/nestest.nes")).unwrap();
+        let mut bus = MainBus::new();
+        let cartridge = Rc::new(RefCell::new(Cartridge::load_rom(Path::new("/Users/pgadula/Programming/NES/m6502/resources/dp.nes")).unwrap()));
+         
+        bus.load_cartridge(cartridge);
+        let mut cpu = m6502::cpu::Mos6502::new(bus);
+        cpu.pc = 0xC000; 
         // hex_dump(c.bytes[16..124].to_vec());
-
-        println!("{:?}", c.prg_size); 
-        println!("{:?}", c.flag_7); 
-        println!("{:?}", c.flag_6); 
+        // println!("{:?}", cartridge.prg_size); 
+        // println!("{:?}", cartridge.flag_7); 
+        // println!("{:?}", cartridge.flag_6); 
         // let mut rom = File::open("./resources/sm.nes").unwrap();
         // // log_iter();
         // let mut buff = Vec::new();
         // rom.read_to_end(&mut buff).unwrap();
         // hex_dump(buff);
-        // hex_dump(c.prg_rom_data().to_vec());
+        
+        cpu.fetch();
+        cpu.fetch();
         assert!(false);
     }
     

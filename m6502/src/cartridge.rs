@@ -6,6 +6,7 @@ use std::{
 };
 
 const NES_CONSTANT: [u8; 4] = [0x4E, 0x45, 0x53, 0x1A];
+const MAPPER_MASK:u8 = 0b11110000;
 
 bitflags! {
     #[derive(Debug)]
@@ -35,6 +36,7 @@ pub struct Cartridge {
     pub flag_7: FLAG7,
     pub prg_size: u8,
     pub chr_size: u8,
+    pub mapper: u8
 }
 
 impl Cartridge {
@@ -50,6 +52,9 @@ impl Cartridge {
         let chr_size = buf[5];
         let flag6 = buf[6];
         let flag7 = buf[7];
+        let mapper =  ((flag7 & MAPPER_MASK)) | ((flag6 & MAPPER_MASK) >> 4);
+        println!("Mapper number: {}", mapper);
+
         validate_nes_constant(&buf)?;
         return Ok(Cartridge {
             bytes: buf,
@@ -57,6 +62,7 @@ impl Cartridge {
             chr_size,
             flag_6: FLAG6::from_bits(flag6).unwrap(),
             flag_7: FLAG7::from_bits(flag7).unwrap(),
+            mapper
         });
     }
      pub fn prg_rom_data(&self)->&[u8]{

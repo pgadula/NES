@@ -60,7 +60,7 @@ impl AddressingMode {
                 let lo = cpu.inc_pc();
                 let hh: u8 = cpu.inc_pc();
                 let addr = Mos6502::get_address_from_bytes(hh, lo);
-                println!("{:#04x}", addr);
+                print!("[Info abs addr] {:4X}", addr);
                 cpu.fetched = cpu.bus.read(addr);
                 cpu.abs_addr = addr;
             }

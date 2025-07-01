@@ -6,7 +6,7 @@ use std::{
 };
 
 const NES_CONSTANT: [u8; 4] = [0x4E, 0x45, 0x53, 0x1A];
-const MAPPER_MASK:u8 = 0b11110000;
+const MAPPER_MASK: u8 = 0b11110000;
 
 bitflags! {
     #[derive(Debug)]
@@ -36,7 +36,7 @@ pub struct Cartridge {
     pub flag_7: FLAG7,
     pub prg_size: u8,
     pub chr_size: u8,
-    pub mapper: u8
+    pub mapper: u8,
 }
 
 impl Cartridge {
@@ -45,14 +45,17 @@ impl Cartridge {
         let mut buf = Vec::new();
         result.read_to_end(&mut buf)?;
         if buf.len() < 7 {
-            return Err(io::Error::new(io::ErrorKind::InvalidData, "Buffer to short"));
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "Buffer to short",
+            ));
         }
-        
+
         let prg_size = buf[4];
         let chr_size = buf[5];
         let flag6 = buf[6];
         let flag7 = buf[7];
-        let mapper =  ((flag7 & MAPPER_MASK)) | ((flag6 & MAPPER_MASK) >> 4);
+        let mapper = (flag7 & MAPPER_MASK) | ((flag6 & MAPPER_MASK) >> 4);
         println!("Mapper number: {}", mapper);
 
         validate_nes_constant(&buf)?;
@@ -62,22 +65,53 @@ impl Cartridge {
             chr_size,
             flag_6: FLAG6::from_bits(flag6).unwrap(),
             flag_7: FLAG7::from_bits(flag7).unwrap(),
-            mapper
+            mapper,
         });
     }
-     pub fn prg_rom_data(&self)->&[u8]{
-        let offset = if self.flag_6.contains(FLAG6::Trainer) {512} else {0}; 
+    pub fn prg_rom_data(&self) -> &[u8] {
+        let offset = if self.flag_6.contains(FLAG6::Trainer) {
+            512
+        } else {
+            0
+        };
         let start = 16 + offset;
         let end = start + 16384 * self.prg_size as usize;
         &self.bytes[start..end]
     }
 
-     pub fn chr_rom_data(&self)->&[u8]{
-        let offset = if self.flag_6.contains(FLAG6::Trainer) {512} else {0}; 
+    pub fn chr_rom_data(&self) -> &[u8] {
+        let offset = if self.flag_6.contains(FLAG6::Trainer) {
+            512
+        } else {
+            0
+        };
         let pgr_offset = 16 + offset;
         let start = pgr_offset + 16384 * self.prg_size as usize;
         let end = start + 8192 * self.chr_size as usize;
         &self.bytes[start..end]
+    }
+
+    pub fn write(addr: usize, value: u8) -> Result<(), Error> {
+        return Err(io::Error::new(io::ErrorKind::Other, "Outside of addressable range."))
+    }
+
+    pub fn read(&self, addr: usize) -> Result<u8, Error> {
+        if (addr >= 0x6000 && addr <= 0x7FFF) || (addr >= 0x8000 && addr <= 0xFFFF) {
+            let reading_addr =  (addr as usize) % self.prg_rom_data().len();
+            println!("[INFO] reading address {} from PRG ROM.", reading_addr);
+            println!("[INFO] abs address {:04X} from PRG ROM.", addr);
+            return Ok(self.prg_rom_data()[reading_addr])
+        }
+        return Err(io::Error::new(io::ErrorKind::Other, "Outside of addressable range."))
+    }
+    
+
+    pub fn info(&self){
+        match self.prg_size  {
+            1 => println!("Detected: NROM-128 (16 KB PRG-ROM)"),
+            2 => println!("Detected: NROM-256 (32 KB PRG-ROM)"),
+            _ => println!("Non-standard ROM size: x 16KB"),
+}
     }
 }
 

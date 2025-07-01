@@ -1,4 +1,4 @@
-use std::{cell::RefCell, fmt::{self, Display, Formatter}, rc::Rc};
+use std::{cell::RefCell, error::Error, fmt::{self, Display, Formatter}, ops::Sub, rc::Rc};
 
 use bitflags::bitflags;
 
@@ -6,6 +6,12 @@ use crate::{cartridge::{self, Cartridge}, opcodes::{resolve_opcode, AddressingMo
 
 pub const VECTOR_BASE: u8 = 0xFF;
 pub const RESET_VECTOR: u8 = 0xFC;
+
+#[derive(Debug)]
+pub enum CpuError {
+    InvalidOpcode(u8),
+    // other error variants...
+}
 
 #[derive(Debug)]
 pub struct Mos6502 {
@@ -25,14 +31,14 @@ pub struct Mos6502 {
 bitflags! {
     #[derive(Debug)]
     pub struct PFlag: u8 {
-       const Carry =            0b00000001;
-       const Zero =             0b00000010;
-       const InterruptDisable = 0b00000100;
-       const DecimalMode =      0b00001000;
-       const BreakCommand =     0b00010000;
-       const Unused =           0b00100000;
-       const Overflow =         0b01000000;
-       const Negative =         0b10000000;
+       const Carry =            0b0000_0001;
+       const Zero =             0b0000_0010;
+       const InterruptDisable = 0b0000_0100;
+       const DecimalMode =      0b0000_1000;
+       const BreakCommand =     0b0001_0000;
+       const Unused =           0b0010_0000;
+       const Overflow =         0b0100_0000;
+       const Negative =         0b1000_0000;
     }
 }
 
@@ -59,16 +65,17 @@ impl MainBus {
      
     pub fn read(&self, address: u16) -> u8 {
         let addr = address as usize;
-        if  addr <= 0x1FFF{
-            return self.cpuRam[addr & 0x07FF] 
+        if let Some(c) = self.cartridge.as_ref(){
+            let borrowed = c.borrow_mut();
+            return match borrowed.read(addr) {
+                Ok(data) => data,
+                Err(_) => self.cpuRam[addr] 
+            }
+
         }
-        if let Some(cartridge) = self.cartridge.as_ref(){
-            let mut c = cartridge.borrow_mut();
-            c.bytes[addr as usize]
-        }else{
-            self.cpuRam[addr as usize]
-        }
+        return 0 
     }
+
 
     pub fn write(&mut self, address: usize, value: u8) {
         let addr = address as usize;
@@ -90,9 +97,9 @@ impl Mos6502 {
     pub fn new(bus: MainBus) -> Mos6502 {
         Mos6502 {
             a: 0,
-            p: PFlag::Unused | PFlag::InterruptDisable,
+            p: PFlag::Unused,
             pc: 0,
-            sp: VECTOR_BASE,
+            sp: 0xFD,
             x: 0,
             y: 0,
             bus,
@@ -140,7 +147,7 @@ impl Mos6502 {
         let lo = self.bus.read(address);
         let hi = self.bus.read(address + 1);
         self.pc = Mos6502::get_address_from_bytes(hi, lo);
-        self.sp = VECTOR_BASE;
+        self.sp = 0xFD;
     }
 
     //little endian low-order byte
@@ -148,17 +155,15 @@ impl Mos6502 {
         u16::from(lo) + (u16::from(hi) << 8usize)
     }
 
-    pub fn fetch(&mut self) {
+    pub fn fetch(&mut self)->Result<(Instruction), CpuError> {
         let opcode = self.bus.read(self.pc);
-        println!("0x{:02X}", opcode);
         let resolved = resolve_opcode(opcode);
         match resolved {
             Some(instruction) => {
-                println!("{:?}\n", instruction);
                 self.execute(instruction);
+                Ok(instruction)
             }
-            None => println!("None\n"),
-        }
+            None =>{self.pc=self.pc+1; Err(CpuError::InvalidOpcode(opcode))}       }
     }
 
     fn update_zero_flag(&mut self, value: u8) {
@@ -612,7 +617,7 @@ impl Display for Mos6502 {
         )?;
 
         // Processor status (as raw byte + decoded flags)
-        writeln!(f, "│  P: 0b{:08b}  ({:?}) . │", self.p, self.p)?;
+        writeln!(f, "│  P: 0b{:08b}  ({:?})  ({:02X}). │", self.p, self.p, self.p.bits())?;
 
         // Footer
         writeln!(f, "└──────────────────────────────────┘")

@@ -1,6 +1,6 @@
 pub fn hex_dump(buff: &[u8]) {
     for (i, chunk) in buff.chunks(16).enumerate() {
-        print!("{:08X}  ", i * 16);
+        print!("{:04X}  ", i * 16);
         for byte in chunk {
             print!("{:02X} ", byte);
         }

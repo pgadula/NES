@@ -1,14 +1,14 @@
 use std::{
     fs::File,
     io::{self, BufRead},
+    num::ParseIntError,
 };
 
-use regex::Regex;
+use m6502::helpers::CpuState;
 
 #[cfg(test)]
 mod tests {
     use std::{
-        borrow::Borrow,
         cell::RefCell,
         fs::File,
         io::{self, BufRead},
@@ -18,11 +18,12 @@ mod tests {
 
     use m6502::{
         cartridge::Cartridge,
-        cpu::{MainBus, PFlag},
+        cpu::{self, MainBus, Mos6502},
+        helpers::cpu_dump_state,
         opcodes::Opcode,
     };
 
-    use crate::read_file_and_parse;
+    use crate::{compare_cpu_state, read_file_and_parse};
 
     #[test]
     fn nestests() {
@@ -35,28 +36,31 @@ mod tests {
         ));
         // hex_dump(&cartridge.borrow_mut().bytes);
         bus.load_cartridge(cartridge);
-        let logs =
+        let mut logs =
             read_file_and_parse("/Users/pgadula/Programming/NES/m6502/resources/nestest.log")
-                .unwrap();
-        
-        let mut cpu = m6502::cpu::Mos6502::new(bus);
+                .unwrap()
+                .into_iter();
+        let mut cpu = Mos6502::new(bus);
         cpu.pc = 0xC000;
-        cpu.p = PFlag::Unused | PFlag::InterruptDisable;
-        let mut n_step = 5;
+        let mut n_step = 500;
         let mut running = true;
         while running {
-            cpu.dump();
-            println!("steps left: {}", n_step);
             match cpu.fetch() {
                 Ok(instruction) => {
-                    match logs.iter().next() {
-                        Some(log) => println!("{:?}", log),
-                        None => {
-                            eprintln!("Invalid log!");
-                            running = false;
-                        }
-                    }
+                    let log = logs.next().unwrap();
+                    println!(
+                        "{:?} {:?} {}",
+                        instruction.0, instruction.1, log.instruction
+                    );
+                    cpu.dump();
+                    let emu_state = cpu_dump_state(&cpu);
+                    compare_cpu_state(&emu_state, &log.cpu_state);
+                    cpu.execute(instruction);
                     n_step = n_step - 1;
+                    let result = cpu.bus.read(0x6000);
+                    if result > 0 {
+                        println!("Error {}", result);
+                    }
                     running = if instruction.0 == Opcode::BRK {
                         false
                     } else {
@@ -65,14 +69,12 @@ mod tests {
                     if n_step <= 0 {
                         running = false;
                     }
-                    println!("{:?} {:?}", instruction.0, instruction.1);
                 }
                 Err(e) => {
                     eprintln!("Invalid instruction!");
                 }
             }
         }
-
         // hex_dump(c.bytes[16..124].to_vec());
         // println!("{:?}", cartridge.prg_size);
         // println!("{:?}", cartridge.flag_7);
@@ -96,7 +98,7 @@ mod tests {
         }
     }
 }
-fn read_file_and_parse(file_path: &str) -> io::Result<Vec<Instruction>> {
+fn read_file_and_parse(file_path: &str) -> io::Result<Vec<InstructionLine>> {
     let file = File::open(file_path)?;
     let reader = io::BufReader::new(file);
 
@@ -104,94 +106,90 @@ fn read_file_and_parse(file_path: &str) -> io::Result<Vec<Instruction>> {
 
     for line in reader.lines() {
         let line = line?;
-        if let Some(instruction) = parse_instruction(&line) {
-            program.push(instruction);
+        program.push(parse_line(&line).unwrap());
+    }
+    Ok(program)
+}
+
+fn parse_line(line: &str) -> Result<InstructionLine, String> {
+    let addr_str = &line[0..4];
+    let address = u16::from_str_radix(addr_str, 16).map_err(|e| e.to_string())?;
+    let bytes_part = &line[6..14].trim();
+    let bytes = bytes_part
+        .split_whitespace()
+        .map(|b| u8::from_str_radix(b, 16))
+        .collect::<Result<Vec<_>, ParseIntError>>()
+        .map_err(|e| e.to_string())?;
+
+    let cpu_start = line.find("A:").ok_or("No CPU state found")?;
+    let instruction = line[15..cpu_start].trim().to_string();
+
+    let cpu_str = &line[cpu_start..];
+
+    let mut a = 0;
+    let mut x = 0;
+    let mut y = 0;
+    let mut p = 0;
+    let mut sp = 0;
+    let mut ppu = (0, 0);
+    let mut cyc = 0;
+
+    for part in cpu_str.split_whitespace() {
+        if part.starts_with("A:") {
+            a = u8::from_str_radix(&part[2..], 16).map_err(|e| e.to_string())?;
+        } else if part.starts_with("X:") {
+            x = u8::from_str_radix(&part[2..], 16).map_err(|e| e.to_string())?;
+        } else if part.starts_with("Y:") {
+            y = u8::from_str_radix(&part[2..], 16).map_err(|e| e.to_string())?;
+        } else if part.starts_with("P:") {
+            p = u8::from_str_radix(&part[2..], 16).map_err(|e| e.to_string())?;
+        } else if part.starts_with("SP:") {
+            sp = u8::from_str_radix(&part[3..], 16).map_err(|e| e.to_string())?;
+        } else if part.starts_with("PPU:") {
+            let ppu_parts: Vec<&str> = cpu_str.split(&[' ', ','][..]).collect();
+            if ppu_parts.len() > 3 {
+                ppu.0 = ppu_parts[1].parse().unwrap_or(0);
+                ppu.1 = ppu_parts[2].parse().unwrap_or(0);
+            }
+        } else if part.starts_with("CYC:") {
+            cyc = part[4..].parse().unwrap_or(0);
         }
     }
 
-    Ok(program)
-}
-fn parse_instruction(line: &str) -> Option<Instruction> {
-    // Regex to match each part of the instruction line
-   let re = Regex::new(r"([0-9A-F]{4})\s([0-9A-F]{2})\s([0-9A-F]{2})\s([0-9A-F]{2})\s([A-Z]+)\s?\$([0-9A-F]{4})\s+.*A:([0-9A-F]{2})\sX:([0-9A-F]{2})\sY:([0-9A-F]{2})\sP:([0-9A-F]{2})\sSP:([0-9A-F]{2})\sPPU:\s([0-9]+),\s([0-9]+)\sCYC:([0-9]+)")
-        .unwrap();
+    let cpu_state = CpuState {
+        a,
+        x,
+        y,
+        p,
+        sp,
+        ppu,
+        cyc,
+    };
 
-    if let Some(caps) = re.captures(line) {
-        let address = u16::from_str_radix(&caps[1], 16).unwrap();
-        let opcode = u8::from_str_radix(&caps[2], 16).unwrap();
-        let immediate = if let Some(im) = caps.get(3) {
-            Some(u8::from_str_radix(im.as_str(), 16).unwrap())
-        } else {
-            None
-        };
-        let memory_addr = Some(u16::from_str_radix(&caps[5], 16).unwrap());
-        let a = u8::from_str_radix(&caps[7], 16).unwrap();
-        let x = u8::from_str_radix(&caps[8], 16).unwrap();
-        let y = u8::from_str_radix(&caps[9], 16).unwrap();
-        let p = u8::from_str_radix(&caps[10], 16).unwrap();
-        let sp = u8::from_str_radix(&caps[11], 16).unwrap();
-        let ppu = caps[12].replace(',', "").parse::<u32>().unwrap();
-        let cycles = caps[13].parse::<u32>().unwrap();
-
-        Some(Instruction::new(
-            address,
-            opcode,
-            immediate,
-            memory_addr,
-            a,
-            x,
-            y,
-            p,
-            sp,
-            ppu,
-            cycles,
-        ))
-    } else {
-        None
-    }
+    Ok(InstructionLine {
+        address,
+        bytes,
+        instruction,
+        cpu_state,
+    })
 }
 
 #[derive(Debug)]
-struct Instruction {
+struct InstructionLine {
     address: u16,
-    opcode: u8,
-    immediate: Option<u8>,
-    memory_addr: Option<u16>,
-    a: u8,
-    x: u8,
-    y: u8,
-    p: u8,
-    sp: u8,
-    ppu: u32,
-    cycles: u32,
+    bytes: Vec<u8>,
+    instruction: String,
+    cpu_state: CpuState,
 }
 
-impl Instruction {
-    fn new(
-        address: u16,
-        opcode: u8,
-        immediate: Option<u8>,
-        memory_addr: Option<u16>,
-        a: u8,
-        x: u8,
-        y: u8,
-        p: u8,
-        sp: u8,
-        ppu: u32,
-        cycles: u32,
-    ) -> Self {
-        Instruction {
-            address,
-            opcode,
-            immediate,
-            memory_addr,
-            a,
-            x,
-            y,
-            p,
-            sp,
-            ppu,
-            cycles,
-        }
-    }
+fn compare_cpu_state(c1: &CpuState, c2: &CpuState) {
+    assert_eq!(c1.a, c2.a, "A register mismatch: {} != {}", c1.a, c2.a);
+    assert_eq!(c1.x, c2.x, "X register mismatch: {} != {}", c1.x, c2.x);
+    assert_eq!(c1.y, c2.y, "Y register mismatch: {} != {}", c1.y, c2.y);
+    assert_eq!(
+        c1.p, c2.p,
+        "P register mismatch: {:02X} != {:02X}",
+        c1.p, c2.p
+    );
+    assert_eq!(c1.sp, c2.sp, "SP register mismatch: {} != {}", c1.sp, c2.sp);
 }

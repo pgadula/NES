@@ -32,8 +32,10 @@ bitflags! {
 #[derive(Debug)]
 pub struct Cartridge {
     pub bytes: Vec<u8>,
+    pub pgr_ram: Vec<u8>,
     pub flag_6: FLAG6,
     pub flag_7: FLAG7,
+    pub pgr_start_addr: usize,
     pub prg_size: u8,
     pub chr_size: u8,
     pub mapper: u8,
@@ -58,25 +60,29 @@ impl Cartridge {
         let mapper = (flag7 & MAPPER_MASK) | ((flag6 & MAPPER_MASK) >> 4);
         println!("Mapper number: {}", mapper);
 
+        let offset = if FLAG6::from_bits(flag6).unwrap().contains(FLAG6::Trainer) {
+            512
+        } else {
+            0
+        };
+
+        let pgr_start_addr = 16 + offset;
         validate_nes_constant(&buf)?;
         return Ok(Cartridge {
             bytes: buf,
+            pgr_ram: vec![0u8; 0x2000],
             prg_size,
+            pgr_start_addr,
             chr_size,
             flag_6: FLAG6::from_bits(flag6).unwrap(),
             flag_7: FLAG7::from_bits(flag7).unwrap(),
             mapper,
         });
     }
+
     pub fn prg_rom_data(&self) -> &[u8] {
-        let offset = if self.flag_6.contains(FLAG6::Trainer) {
-            512
-        } else {
-            0
-        };
-        let start = 16 + offset;
-        let end = start + 16384 * self.prg_size as usize;
-        &self.bytes[start..end]
+        let end = self.pgr_start_addr + 16384 * self.prg_size as usize;
+        &self.bytes[self.pgr_start_addr..end]
     }
 
     pub fn chr_rom_data(&self) -> &[u8] {
@@ -90,21 +96,31 @@ impl Cartridge {
         let end = start + 8192 * self.chr_size as usize;
         &self.bytes[start..end]
     }
+     
+     pub fn has_trainer(&self)->bool{
+        self.flag_6.contains(FLAG6::Trainer) 
+     }
 
-    pub fn write(addr: usize, value: u8) -> Result<(), Error> {
+    pub fn write(&mut self, addr: usize, value: u8) -> Result<(), Error> {
+        panic!("Invalid 123");
+        if addr >= 0x6000 && addr <= 0x7FFF{
+            self.pgr_ram[addr.wrapping_sub(0x6000)] = value; 
+            return Ok(())
+        }
         return Err(io::Error::new(io::ErrorKind::Other, "Outside of addressable range."))
     }
 
     pub fn read(&self, addr: usize) -> Result<u8, Error> {
-        if (addr >= 0x6000 && addr <= 0x7FFF) || (addr >= 0x8000 && addr <= 0xFFFF) {
+        if addr >= 0x6000 && addr <= 0x7FFF{
+            return Ok(self.pgr_ram[addr.wrapping_sub(0x6000)]); 
+        }
+
+        if addr >= 0x8000 && addr <= 0xFFFF {
             let reading_addr =  (addr as usize) % self.prg_rom_data().len();
-            println!("[INFO] reading address {} from PRG ROM.", reading_addr);
-            println!("[INFO] abs address {:04X} from PRG ROM.", addr);
             return Ok(self.prg_rom_data()[reading_addr])
         }
         return Err(io::Error::new(io::ErrorKind::Other, "Outside of addressable range."))
     }
-    
 
     pub fn info(&self){
         match self.prg_size  {

@@ -71,14 +71,20 @@ impl MainBus {
                 Ok(data) => data,
                 Err(_) => self.cpuRam[addr] 
             }
-
         }
         return 0 
     }
 
-
     pub fn write(&mut self, address: usize, value: u8) {
         let addr = address as usize;
+        println!("[INFO] Writing to address {:04X}", address);
+        if let Some(c) = self.cartridge.as_ref(){
+            let borrowed = c.borrow_mut();
+            match borrowed.read(addr) {
+                Ok(_) => return,
+                _=>{}
+            }
+        }
         if  addr <= 0x1FFF{
             self.cpuRam[addr & 0x07FF] = value;
         }
@@ -97,7 +103,7 @@ impl Mos6502 {
     pub fn new(bus: MainBus) -> Mos6502 {
         Mos6502 {
             a: 0,
-            p: PFlag::Unused,
+            p: PFlag::from_bits(36).unwrap(),
             pc: 0,
             sp: 0xFD,
             x: 0,
@@ -110,6 +116,11 @@ impl Mos6502 {
             rel_addr: 0,
         }
     }
+
+    pub fn zero_page(&self)->&[u8] {
+        return &self.bus.cpuRam[0x0000..0x00FF]
+    }
+
     pub fn dump(&self) {
         println!("{}", self)
     }
@@ -160,7 +171,6 @@ impl Mos6502 {
         let resolved = resolve_opcode(opcode);
         match resolved {
             Some(instruction) => {
-                self.execute(instruction);
                 Ok(instruction)
             }
             None =>{self.pc=self.pc+1; Err(CpuError::InvalidOpcode(opcode))}       }
@@ -181,7 +191,7 @@ impl Mos6502 {
         self.p.set(PFlag::Carry, value > 0xFF);
     }
 
-    fn execute(&mut self, instruction: Instruction) {
+    pub fn execute(&mut self, instruction: Instruction) {
         self.pc += 1;
         match instruction.0 {
             Opcode::ADC => {
@@ -244,7 +254,7 @@ impl Mos6502 {
                 instruction.1.apply(self);
                 let value = self.a & self.fetched;
 
-                self.update_zero_flag(value);
+                self.p.set(PFlag::Zero, value == 0);
                 self.p.set(PFlag::Negative, self.fetched & 0x80 != 0);
                 self.p.set(PFlag::Overflow, self.fetched & 0x40 != 0);
             }
@@ -430,7 +440,7 @@ impl Mos6502 {
                 }
                 self.update_zero_flag(temp as u8);
             }
-            Opcode::NOP => eprintln!("NOP"),
+            Opcode::NOP => {},
             Opcode::ORA => {
                 instruction.1.apply(self);
                 let value = self.a | self.fetched;

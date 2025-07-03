@@ -4,7 +4,7 @@ use std::{
     num::ParseIntError,
 };
 
-use m6502::helpers::CpuState;
+use m6502::{cpu::PFlag, helpers::CpuState};
 
 #[cfg(test)]
 mod tests {
@@ -44,17 +44,21 @@ mod tests {
         cpu.pc = 0xC000;
         let mut n_step = 500;
         let mut running = true;
+        let mut n = 0;
         while running {
             match cpu.fetch() {
                 Ok(instruction) => {
+                    n = n+1;
                     let log = logs.next().unwrap();
                     println!(
-                        "{:?} {:?} {}",
+                        "[{n}] Fetched: {:?} {:?}\t Log: {}",
                         instruction.0, instruction.1, log.instruction
                     );
-                    cpu.dump();
                     let emu_state = cpu_dump_state(&cpu);
-                    compare_cpu_state(&emu_state, &log.cpu_state);
+                    if let Err(error) =  compare_cpu_state(&emu_state, &log.cpu_state){
+                        cpu.dump();
+                        assert!(false, "CPU state mismatch: {}", error);
+                    }
                     cpu.execute(instruction);
                     n_step = n_step - 1;
                     let result = cpu.bus.read(0x6000);
@@ -75,29 +79,10 @@ mod tests {
                 }
             }
         }
-        // hex_dump(c.bytes[16..124].to_vec());
-        // println!("{:?}", cartridge.prg_size);
-        // println!("{:?}", cartridge.flag_7);
-        // println!("{:?}", cartridge.flag_6);
-        // let mut rom = File::open("./resources/sm.nes").unwrap();
-        // // log_iter();
-        // let mut buff = Vec::new();
-        // rom.read_to_end(&mut buff).unwrap();
-        // hex_dump(buff);
-
-        // cpu.fetch();
         assert!(false);
     }
-
-    fn log_iter() {
-        let log = File::open("./resources/nestest.log").unwrap();
-        let log_reader = io::BufReader::new(log);
-        let lines = log_reader.lines();
-        for l in lines.map_while(Result::ok) {
-            println!("{l}");
-        }
-    }
 }
+
 fn read_file_and_parse(file_path: &str) -> io::Result<Vec<InstructionLine>> {
     let file = File::open(file_path)?;
     let reader = io::BufReader::new(file);
@@ -182,14 +167,26 @@ struct InstructionLine {
     cpu_state: CpuState,
 }
 
-fn compare_cpu_state(c1: &CpuState, c2: &CpuState) {
-    assert_eq!(c1.a, c2.a, "A register mismatch: {} != {}", c1.a, c2.a);
-    assert_eq!(c1.x, c2.x, "X register mismatch: {} != {}", c1.x, c2.x);
-    assert_eq!(c1.y, c2.y, "Y register mismatch: {} != {}", c1.y, c2.y);
-    assert_eq!(
-        c1.p, c2.p,
-        "P register mismatch: {:02X} != {:02X}",
-        c1.p, c2.p
-    );
-    assert_eq!(c1.sp, c2.sp, "SP register mismatch: {} != {}", c1.sp, c2.sp);
+fn compare_cpu_state(c1: &CpuState, c2: &CpuState) -> Result<(), String> {
+    if c1.a != c2.a {
+        return Err(format!("A register mismatch: {} != {}", c1.a, c2.a));
+    }
+    if c1.x != c2.x {
+        return Err(format!("X register mismatch: {} != {}", c1.x, c2.x));
+    }
+    if c1.y != c2.y {
+        return Err(format!("Y register mismatch: {} != {}", c1.y, c2.y));
+    }
+    if c1.p != c2.p {
+        let cpu_p = PFlag::from_bits(c1.p);
+        let expected_flags = PFlag::from_bits(c2.p);
+        return Err(format!(
+            "P register mismatch: {:02X} != {:02X}\n expected: {:?} != result {:?}",
+            c1.p, c2.p, expected_flags, cpu_p
+        ));
+    }
+    if c1.sp != c2.sp {
+        return Err(format!("SP register mismatch: {} != {}", c1.sp, c2.sp));
+    }
+    Ok(())
 }

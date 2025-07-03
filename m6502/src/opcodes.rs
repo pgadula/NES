@@ -43,14 +43,17 @@ impl AddressingMode {
             ZeroPage => {
                 let zero_page_addr = cpu.inc_pc() as u16;
                 cpu.abs_addr = zero_page_addr;
+                cpu.fetched = cpu.bus.read(zero_page_addr);
             }
             ZeroPageX => {
-                let zero_page_addr = cpu.inc_pc().wrapping_add(cpu.x);
+                let zero_page_addr= cpu.inc_pc().wrapping_add(cpu.x) as u16;
                 cpu.abs_addr = zero_page_addr as u16;
+                cpu.fetched = cpu.bus.read(zero_page_addr);
             }
             ZeroPageY => {
-                let zero_page_addr = cpu.inc_pc().wrapping_add(cpu.y);
+                let zero_page_addr = cpu.inc_pc().wrapping_add(cpu.y) as u16;
                 cpu.abs_addr = zero_page_addr as u16;
+                cpu.fetched = cpu.bus.read(zero_page_addr);
             }
             Relative => {
                let value = cpu.inc_pc();

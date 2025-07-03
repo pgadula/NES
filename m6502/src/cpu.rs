@@ -200,6 +200,7 @@ impl Mos6502 {
                 let v1 = self.fetched as u16 + carrying;
                 let sum: u16 = self.a as u16 + v1;
                 let a = self.a as u16;
+                self.p.set(PFlag::Zero, sum == 0);
                 self.update_carry_flag(sum);
                 self.update_overflow_flag(v1 as u8, a as u8, sum as u8);
                 self.a = sum as u8;

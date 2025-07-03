@@ -42,25 +42,28 @@ mod tests {
                 .into_iter();
         let mut cpu = Mos6502::new(bus);
         cpu.pc = 0xC000;
-        let mut n_step = 500;
+        let mut n_step = 8991;
         let mut running = true;
-        let mut n = 0;
+        let mut line: i32 = 0;
         while running {
             match cpu.fetch() {
                 Ok(instruction) => {
-                    n = n+1;
+                    line = line + 1;
                     let log = logs.next().unwrap();
                     println!(
-                        "[{n}] Fetched: {:?} {:?}\t Log: {}",
+                        "[{line}] Fetched: {:?} {:?}\t Log: {}",
                         instruction.0, instruction.1, log.instruction
                     );
+                    cpu.dump();
                     let emu_state = cpu_dump_state(&cpu);
-                    if let Err(error) =  compare_cpu_state(&emu_state, &log.cpu_state){
+                    if let Err(error) = compare_cpu_state(&emu_state, &log.cpu_state) {
                         cpu.dump();
                         assert!(false, "CPU state mismatch: {}", error);
                     }
+
                     cpu.execute(instruction);
                     n_step = n_step - 1;
+
                     let result = cpu.bus.read(0x6000);
                     if result > 0 {
                         println!("Error {}", result);
@@ -75,11 +78,14 @@ mod tests {
                     }
                 }
                 Err(e) => {
-                    eprintln!("Invalid instruction!");
+                    
+                    eprintln!("Invalid instruction! {:?}", e);
+                    cpu.dump();
+                    panic!(".")
                 }
             }
         }
-        assert!(false);
+        assert!(true);
     }
 }
 

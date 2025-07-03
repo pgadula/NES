@@ -192,7 +192,9 @@ impl Mos6502 {
     }
 
     pub fn execute(&mut self, instruction: Instruction) {
+        println!("PC:{:02x}", self.pc);
         self.pc += 1;
+        println!("incremented PC:{:02x}", self.pc);
         match instruction.0 {
             Opcode::ADC => {
                 instruction.1.apply(self);
@@ -200,9 +202,11 @@ impl Mos6502 {
                 let v1 = self.fetched as u16 + carrying;
                 let sum: u16 = self.a as u16 + v1;
                 let a = self.a as u16;
-                self.p.set(PFlag::Zero, sum == 0);
+                let result: u8 = sum as u8;
+                self.update_zero_flag(result);
+                self.update_neg_flag(result);
                 self.update_carry_flag(sum);
-                self.update_overflow_flag(v1 as u8, a as u8, sum as u8);
+                self.update_overflow_flag(a as u8, self.fetched, sum as u8);
                 self.a = sum as u8;
             }
             Opcode::AND => {
@@ -214,7 +218,7 @@ impl Mos6502 {
             }
             Opcode::ASL => {
                 let mut value: u16;
-                if instruction.1 == AddressingMode::Implied {
+                if instruction.1 == AddressingMode::Implied || instruction.1 == AddressingMode::Accumulator{
                     value = self.a as u16;
                 } else {
                     instruction.1.apply(self);
@@ -224,7 +228,7 @@ impl Mos6502 {
                 self.update_zero_flag(value as u8);
                 self.update_neg_flag(value as u8);
                 self.p.set(PFlag::Carry, (value & 0x100) != 0);
-                if instruction.1 == AddressingMode::Implied {
+                if instruction.1 == AddressingMode::Implied || instruction.1 == AddressingMode::Accumulator {
                     self.a = value as u8
                 } else {
                     self.bus.write(self.abs_addr as usize, value as u8);
@@ -434,14 +438,16 @@ impl Mos6502 {
                 self.p.set(PFlag::Carry, self.fetched & 0x01 != 0);
                 let temp = self.fetched as u16 >> 1;
                 self.p.set(PFlag::Negative, false);
-                if instruction.1 == AddressingMode::Implied {
+                if instruction.1 == AddressingMode::Implied || instruction.1 == AddressingMode::Accumulator {
                     self.a = temp as u8
                 } else {
                     self.bus.write(self.abs_addr as usize, temp as u8);
                 }
                 self.update_zero_flag(temp as u8);
             }
-            Opcode::NOP => {},
+            Opcode::NOP => {
+                instruction.1.apply(self);
+            },
             Opcode::ORA => {
                 instruction.1.apply(self);
                 let value = self.a | self.fetched;
@@ -475,7 +481,7 @@ impl Mos6502 {
                 let temp = (self.fetched as u16) << 1 | carry_in;
                 self.p.set(PFlag::Negative, (temp & 0x80) != 0);
                 self.p.set(PFlag::Carry, carry_out);
-                if instruction.1 == AddressingMode::Implied {
+                if instruction.1 == AddressingMode::Implied || instruction.1 == AddressingMode::Accumulator{
                     self.a = temp as u8
                 } else {
                     self.bus.write(self.abs_addr as usize, temp as u8);
@@ -489,7 +495,7 @@ impl Mos6502 {
                 let temp = (self.fetched) >> 1 | (carry_in << 7);
                 self.p.set(PFlag::Negative, (temp & 0x80) != 0);
                 self.p.set(PFlag::Carry, carry_out);
-                if instruction.1 == AddressingMode::Implied {
+                if instruction.1 == AddressingMode::Implied || instruction.1 == AddressingMode::Accumulator {
                     self.a = temp as u8
                 } else {
                     self.bus.write(self.abs_addr as usize, temp as u8);

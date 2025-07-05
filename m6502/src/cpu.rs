@@ -1,8 +1,17 @@
-use std::{cell::RefCell, error::Error, fmt::{self, Display, Formatter}, ops::Sub, rc::Rc};
+use std::{
+    cell::RefCell,
+    error::Error,
+    fmt::{self, Display, Formatter},
+    ops::Sub,
+    rc::Rc,
+};
 
 use bitflags::bitflags;
 
-use crate::{cartridge::{self, Cartridge}, opcodes::{resolve_opcode, AddressingMode, Instruction, Opcode}};
+use crate::{
+    cartridge::{self, Cartridge},
+    opcodes::{resolve_opcode, AddressingMode, Instruction, Opcode},
+};
 
 pub const VECTOR_BASE: u8 = 0xFF;
 pub const RESET_VECTOR: u8 = 0xFC;
@@ -45,7 +54,7 @@ bitflags! {
 #[derive(Debug)]
 pub struct MainBus {
     cpuRam: [u8; 0x10000],
-    pub cartridge: Option<Rc<RefCell<Cartridge>>>
+    pub cartridge: Option<Rc<RefCell<Cartridge>>>,
 }
 
 impl MainBus {
@@ -62,30 +71,30 @@ impl MainBus {
     pub fn load_cartridge(&mut self, cartridge: Rc<RefCell<Cartridge>>) {
         self.cartridge = Some(cartridge);
     }
-     
+
     pub fn read(&self, address: u16) -> u8 {
         let addr = address as usize;
-        if let Some(c) = self.cartridge.as_ref(){
+        if let Some(c) = self.cartridge.as_ref() {
             let borrowed = c.borrow_mut();
             return match borrowed.read(addr) {
                 Ok(data) => data,
-                Err(_) => self.cpuRam[addr] 
-            }
+                Err(_) => self.cpuRam[addr],
+            };
         }
-        return 0 
+        return 0;
     }
 
     pub fn write(&mut self, address: usize, value: u8) {
         let addr = address as usize;
         println!("[INFO] Writing to address {:04X}", address);
-        if let Some(c) = self.cartridge.as_ref(){
+        if let Some(c) = self.cartridge.as_ref() {
             let borrowed = c.borrow_mut();
             match borrowed.read(addr) {
                 Ok(_) => return,
-                _=>{}
+                _ => {}
             }
         }
-        if  addr <= 0x1FFF{
+        if addr <= 0x1FFF {
             self.cpuRam[addr & 0x07FF] = value;
         }
     }
@@ -117,8 +126,8 @@ impl Mos6502 {
         }
     }
 
-    pub fn zero_page(&self)->&[u8] {
-        return &self.bus.cpuRam[0x0000..0x00FF]
+    pub fn zero_page(&self) -> &[u8] {
+        return &self.bus.cpuRam[0x0000..0x00FF];
     }
 
     pub fn dump(&self) {
@@ -166,14 +175,13 @@ impl Mos6502 {
         u16::from(lo) + (u16::from(hi) << 8usize)
     }
 
-    pub fn fetch(&mut self)->Result<(Instruction), CpuError> {
+    pub fn fetch(&mut self) -> Result<(Instruction), CpuError> {
         let opcode = self.bus.read(self.pc);
         let resolved = resolve_opcode(opcode);
         match resolved {
-            Some(instruction) => {
-                Ok(instruction)
-            }
-            None =>{self.pc=self.pc+1; Err(CpuError::InvalidOpcode(opcode))}       }
+            Some(instruction) => Ok(instruction),
+            None => Err(CpuError::InvalidOpcode(opcode)),
+        }
     }
 
     fn update_zero_flag(&mut self, value: u8) {
@@ -218,7 +226,9 @@ impl Mos6502 {
             }
             Opcode::ASL => {
                 let mut value: u16;
-                if instruction.1 == AddressingMode::Implied || instruction.1 == AddressingMode::Accumulator{
+                if instruction.1 == AddressingMode::Implied
+                    || instruction.1 == AddressingMode::Accumulator
+                {
                     value = self.a as u16;
                 } else {
                     instruction.1.apply(self);
@@ -228,7 +238,9 @@ impl Mos6502 {
                 self.update_zero_flag(value as u8);
                 self.update_neg_flag(value as u8);
                 self.p.set(PFlag::Carry, (value & 0x100) != 0);
-                if instruction.1 == AddressingMode::Implied || instruction.1 == AddressingMode::Accumulator {
+                if instruction.1 == AddressingMode::Implied
+                    || instruction.1 == AddressingMode::Accumulator
+                {
                     self.a = value as u8
                 } else {
                     self.bus.write(self.abs_addr as usize, value as u8);
@@ -316,6 +328,15 @@ impl Mos6502 {
             Opcode::CLD => self.p.remove(PFlag::DecimalMode),
             Opcode::CLI => self.p.remove(PFlag::InterruptDisable),
             Opcode::CLV => self.p.remove(PFlag::Overflow),
+            Opcode::DCP => {
+                instruction.1.apply(self);
+                let decremented = self.bus.read(self.abs_addr).wrapping_sub(1);
+                self.bus.write(self.abs_addr as usize, decremented); 
+                let result = self.a.wrapping_sub(decremented);
+                self.update_neg_flag(result);
+                self.update_zero_flag(result);
+                self.p.set(PFlag::Carry, self.a >= decremented);
+            }
             Opcode::CMP => {
                 instruction.1.apply(self);
                 let value = (self.a as u16).wrapping_sub(self.fetched as u16);
@@ -427,6 +448,13 @@ impl Mos6502 {
                 self.update_neg_flag(self.fetched);
                 self.update_zero_flag(self.fetched);
             }
+            Opcode::LAX => {
+                instruction.1.apply(self);
+                self.x = self.fetched;
+                self.a = self.fetched;
+                self.update_neg_flag(self.fetched);
+                self.update_zero_flag(self.fetched);
+            }
             Opcode::LDY => {
                 instruction.1.apply(self);
                 self.y = self.fetched;
@@ -438,7 +466,9 @@ impl Mos6502 {
                 self.p.set(PFlag::Carry, self.fetched & 0x01 != 0);
                 let temp = self.fetched as u16 >> 1;
                 self.p.set(PFlag::Negative, false);
-                if instruction.1 == AddressingMode::Implied || instruction.1 == AddressingMode::Accumulator {
+                if instruction.1 == AddressingMode::Implied
+                    || instruction.1 == AddressingMode::Accumulator
+                {
                     self.a = temp as u8
                 } else {
                     self.bus.write(self.abs_addr as usize, temp as u8);
@@ -447,7 +477,10 @@ impl Mos6502 {
             }
             Opcode::NOP => {
                 instruction.1.apply(self);
-            },
+            }
+            Opcode::UndocumentedNOP => {
+                instruction.1.apply(self);
+            }
             Opcode::ORA => {
                 instruction.1.apply(self);
                 let value = self.a | self.fetched;
@@ -481,7 +514,9 @@ impl Mos6502 {
                 let temp = (self.fetched as u16) << 1 | carry_in;
                 self.p.set(PFlag::Negative, (temp & 0x80) != 0);
                 self.p.set(PFlag::Carry, carry_out);
-                if instruction.1 == AddressingMode::Implied || instruction.1 == AddressingMode::Accumulator{
+                if instruction.1 == AddressingMode::Implied
+                    || instruction.1 == AddressingMode::Accumulator
+                {
                     self.a = temp as u8
                 } else {
                     self.bus.write(self.abs_addr as usize, temp as u8);
@@ -495,7 +530,9 @@ impl Mos6502 {
                 let temp = (self.fetched) >> 1 | (carry_in << 7);
                 self.p.set(PFlag::Negative, (temp & 0x80) != 0);
                 self.p.set(PFlag::Carry, carry_out);
-                if instruction.1 == AddressingMode::Implied || instruction.1 == AddressingMode::Accumulator {
+                if instruction.1 == AddressingMode::Implied
+                    || instruction.1 == AddressingMode::Accumulator
+                {
                     self.a = temp as u8
                 } else {
                     self.bus.write(self.abs_addr as usize, temp as u8);
@@ -551,6 +588,10 @@ impl Mos6502 {
             Opcode::STX => {
                 instruction.1.apply(self);
                 self.bus.write(self.abs_addr as usize, self.x);
+            }
+            Opcode::SAX => {
+                instruction.1.apply(self);
+                self.bus.write(self.abs_addr as usize, self.x & self.a);
             }
             Opcode::STY => {
                 instruction.1.apply(self);
@@ -634,7 +675,13 @@ impl Display for Mos6502 {
         )?;
 
         // Processor status (as raw byte + decoded flags)
-        writeln!(f, "│  P: 0b{:08b}  ({:?})  ({:02X}). │", self.p, self.p, self.p.bits())?;
+        writeln!(
+            f,
+            "│  P: 0b{:08b}  ({:?})  ({:02X}). │",
+            self.p,
+            self.p,
+            self.p.bits()
+        )?;
 
         // Footer
         writeln!(f, "└──────────────────────────────────┘")

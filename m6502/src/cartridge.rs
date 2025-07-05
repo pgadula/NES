@@ -122,6 +122,14 @@ impl Cartridge {
             let prg = self.prg_rom_data();
             let prg_len = prg.len(); // 16KB or 32KB
             let offset = (addr - 0x8000) % prg_len;
+            println!(
+                "Dump 0xC6BC+: {:02X} {:02X} {:02X} {:02X}",
+                prg[(addr - 0x8000 + 0) % 0x4000],
+                prg[(addr - 0x8000 + 1) % 0x4000],
+                prg[(addr - 0x8000 + 2) % 0x4000],
+                prg[(addr - 0x8000 + 3) % 0x4000],
+            );
+
             return Ok(prg[offset]);
         }
         return Err(io::Error::new(

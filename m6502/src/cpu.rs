@@ -331,7 +331,7 @@ impl Mos6502 {
             Opcode::DCP => {
                 instruction.1.apply(self);
                 let decremented = self.bus.read(self.abs_addr).wrapping_sub(1);
-                self.bus.write(self.abs_addr as usize, decremented); 
+                self.bus.write(self.abs_addr as usize, decremented);
                 let result = self.a.wrapping_sub(decremented);
                 self.update_neg_flag(result);
                 self.update_zero_flag(result);
@@ -390,6 +390,24 @@ impl Mos6502 {
                 self.update_neg_flag(value);
                 self.update_zero_flag(value);
                 self.bus.write(self.abs_addr.into(), value);
+            }
+            Opcode::ISB => {
+                instruction.1.apply(self);
+
+                let fetched = self.bus.read(self.abs_addr).wrapping_add(1);
+                self.bus.write(self.abs_addr as usize, fetched);
+
+                let value = fetched ^ 0xFF;
+                let carry_in = if self.p.contains(PFlag::Carry) { 1 } else { 0 };
+
+                let sum = self.a as u16 + value as u16 + carry_in;
+
+                self.update_carry_flag(sum);
+                self.update_overflow_flag(value as u8, self.a, sum as u8);
+
+                self.a = sum as u8;
+                self.update_zero_flag(self.a);
+                self.update_neg_flag(self.a);
             }
             Opcode::INX => {
                 instruction.1.apply(self);
@@ -593,6 +611,25 @@ impl Mos6502 {
                 instruction.1.apply(self);
                 self.bus.write(self.abs_addr as usize, self.x & self.a);
             }
+            Opcode::SLO => {
+                instruction.1.apply(self);
+                self.p.set(PFlag::Carry, self.fetched & 0x80 != 0);
+
+                let shifted = (self.fetched << 1) as u8;
+
+                if instruction.1 == AddressingMode::Implied
+                    || instruction.1 == AddressingMode::Accumulator
+                {
+                    self.a = shifted;
+                } else {
+                    self.bus.write(self.abs_addr as usize, shifted);
+                }
+
+                self.a |= shifted;
+
+                self.update_zero_flag(self.a);
+                self.update_neg_flag(self.a);
+            }
             Opcode::STY => {
                 instruction.1.apply(self);
                 self.bus.write(self.abs_addr as usize, self.y);
@@ -630,6 +667,23 @@ impl Mos6502 {
                 self.a = self.y;
                 self.update_neg_flag(self.a);
                 self.update_zero_flag(self.a);
+            }
+            Opcode::RLA => {
+                instruction.1.apply(self);
+                let carry_in: u16 = if self.p.contains(PFlag::Carry) { 1 } else { 0 };
+                let carry_out = (self.fetched & 0b10000000) != 0;
+                let temp = (self.fetched as u16) << 1 | carry_in;
+                let result: u8 = self.a & (temp as u8);
+                self.p.set(PFlag::Negative, (temp & 0x80) != 0);
+                self.p.set(PFlag::Carry, carry_out);
+                if instruction.1 == AddressingMode::Implied
+                    || instruction.1 == AddressingMode::Accumulator
+                {
+                    self.a = result
+                } else {
+                    self.bus.write(self.abs_addr as usize, result);
+                }
+                self.update_zero_flag(temp as u8);
             }
         };
     }

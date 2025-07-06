@@ -15,7 +15,7 @@ mod tests {
         path::Path,
         rc::Rc,
     };
-
+ 
     use m6502::{
         cartridge::Cartridge,
         cpu::{self, MainBus, Mos6502},

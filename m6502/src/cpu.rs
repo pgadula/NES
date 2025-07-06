@@ -86,16 +86,27 @@ impl MainBus {
 
     pub fn write(&mut self, address: usize, value: u8) {
         let addr = address as usize;
-        println!("[INFO] Writing to address {:04X}", address);
         if let Some(c) = self.cartridge.as_ref() {
-            let borrowed = c.borrow_mut();
-            match borrowed.read(addr) {
+            let mut borrowed = c.borrow_mut();
+            match borrowed.write(addr, value) {
                 Ok(_) => return,
                 _ => {}
             }
         }
-        if addr <= 0x1FFF {
-            self.cpuRam[addr & 0x07FF] = value;
+        match addr {
+            0x0000..=0x1FFF => {
+                println!(
+                    "[INFO] writing to CPU RAM addr:{:04X} value {}",
+                    addr, value
+                );
+                self.cpuRam[addr & 0x07FF] = value;
+            }
+            0x4000..=0x4017 => {
+                println!("[INFO] Ignoring APU write: ${:04X} = {}", addr, value);
+            }
+            _ => {
+                eprintln!("Unahandled address {:04X}", addr);
+            }
         }
     }
 
@@ -673,17 +684,52 @@ impl Mos6502 {
                 let carry_in: u16 = if self.p.contains(PFlag::Carry) { 1 } else { 0 };
                 let carry_out = (self.fetched & 0b10000000) != 0;
                 let temp = (self.fetched as u16) << 1 | carry_in;
-                let result: u8 = self.a & (temp as u8);
                 self.p.set(PFlag::Negative, (temp & 0x80) != 0);
                 self.p.set(PFlag::Carry, carry_out);
-                if instruction.1 == AddressingMode::Implied
-                    || instruction.1 == AddressingMode::Accumulator
-                {
-                    self.a = result
-                } else {
-                    self.bus.write(self.abs_addr as usize, result);
-                }
+                self.bus.write(self.abs_addr as usize, temp as u8);
+                self.a &= temp as u8;
+
                 self.update_zero_flag(temp as u8);
+            }
+            Opcode::SRE => {
+                instruction.1.apply(self);
+                self.p.set(PFlag::Carry, self.fetched & 0x01 != 0);
+                let shifted = (self.fetched >> 1);
+                self.p.set(PFlag::Negative, false);
+                if instruction.1 != AddressingMode::Implied
+                    && instruction.1 != AddressingMode::Accumulator
+                {
+                    self.bus.write(self.abs_addr as usize, shifted);
+                }
+                self.a ^= shifted;
+                self.update_neg_flag(self.a);
+                self.update_zero_flag(self.a);
+            }
+            Opcode::RRA => {
+                instruction.1.apply(self);
+                let carry_in: u8 = if self.p.contains(PFlag::Carry) { 1 } else { 0 };
+                let carry_out = (self.fetched & 0x01) != 0;
+                let rotated = (self.fetched) >> 1 | (carry_in << 7);
+                self.p.set(PFlag::Negative, (rotated & 0x80) != 0);
+                self.p.set(PFlag::Carry, carry_out);
+                if instruction.1 != AddressingMode::Implied
+                    && instruction.1 != AddressingMode::Accumulator
+                {
+                    self.bus.write(self.abs_addr as usize, rotated as u8);
+                }
+                let a = self.a;
+                let result =
+                    a as u16 + rotated as u16 + if self.p.contains(PFlag::Carry) { 1 } else { 0 };
+
+                self.p.set(PFlag::Carry, result > 0xFF);
+                let result8 = result as u8;
+                self.p.set(
+                    PFlag::Overflow,
+                    ((a ^ result8) & (rotated ^ result8) & 0x80) != 0,
+                );
+                self.a = result8;
+                self.update_zero_flag(self.a);
+                self.update_neg_flag(self.a);
             }
         };
     }

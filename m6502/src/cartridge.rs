@@ -102,7 +102,6 @@ impl Cartridge {
     }
 
     pub fn write(&mut self, addr: usize, value: u8) -> Result<(), Error> {
-        panic!("Invalid 123");
         if addr >= 0x6000 && addr <= 0x7FFF {
             self.prg_ram[addr.wrapping_sub(0x6000)] = value;
             return Ok(());

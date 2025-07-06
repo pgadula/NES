@@ -10,15 +10,13 @@ use m6502::{cpu::PFlag, helpers::CpuState};
 mod tests {
     use std::{
         cell::RefCell,
-        fs::File,
-        io::{self, BufRead},
         path::Path,
         rc::Rc,
     };
- 
+
     use m6502::{
         cartridge::Cartridge,
-        cpu::{self, MainBus, Mos6502},
+        cpu::{MainBus, Mos6502},
         helpers::cpu_dump_state,
         opcodes::Opcode,
     };
@@ -30,14 +28,13 @@ mod tests {
         let mut bus = MainBus::new();
         let cartridge = Rc::new(RefCell::new(
             Cartridge::load_rom(Path::new(
-                "/Users/pgadula/Programming/NES/m6502/resources/nestest.nes",
+                "resources/nestest.nes",
             ))
             .unwrap(),
         ));
-        // hex_dump(&cartridge.borrow_mut().bytes);
         bus.load_cartridge(cartridge);
         let mut logs =
-            read_file_and_parse("/Users/pgadula/Programming/NES/m6502/resources/nestest.log")
+            read_file_and_parse("resources/nestest.log")
                 .unwrap()
                 .into_iter();
         let mut cpu = Mos6502::new(bus);
@@ -54,7 +51,6 @@ mod tests {
                         "[{line}] Fetched: {:?} {:?}\t Log: {}",
                         instruction.0, instruction.1, log.instruction
                     );
-                    cpu.dump();
                     let emu_state = cpu_dump_state(&cpu);
                     if let Err(error) = compare_cpu_state(&emu_state, &log.cpu_state) {
                         cpu.dump();
@@ -64,9 +60,8 @@ mod tests {
                     cpu.execute(instruction);
                     n_step = n_step - 1;
 
-                    let result = cpu.bus.read(0x6000);
-                    if result > 0 {
-                        println!("Error {}", result);
+                    if cpu.bus.read(0x6000) != 0 {
+                        panic!("nestest failed: error code = {}", cpu.bus.read(0x6000));
                     }
                     running = if instruction.0 == Opcode::BRK {
                         false
@@ -78,14 +73,10 @@ mod tests {
                     }
                 }
                 Err(e) => {
-                    
-                    eprintln!("Invalid instruction! {:?}", e);
-                    cpu.dump();
-                    panic!(".")
+                    panic!("[Error] Invalid instruction {:?}! ", e);
                 }
             }
         }
-        assert!(true);
     }
 }
 

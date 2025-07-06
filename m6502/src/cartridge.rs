@@ -46,38 +46,11 @@ impl Cartridge {
         let mut result = File::open(path)?;
         let mut buf = Vec::new();
         result.read_to_end(&mut buf)?;
-        if buf.len() < 7 {
-            return Err(io::Error::new(
-                io::ErrorKind::InvalidData,
-                "Buffer to short",
-            ));
-        }
+        Cartridge::parse_cartridge(buf)
+    }
 
-        let prg_size = buf[4];
-        let chr_size = buf[5];
-        let flag6 = buf[6];
-        let flag7 = buf[7];
-        let mapper = (flag7 & MAPPER_MASK) | ((flag6 & MAPPER_MASK) >> 4);
-        println!("Mapper number: {}", mapper);
-
-        let offset = if FLAG6::from_bits(flag6).unwrap().contains(FLAG6::Trainer) {
-            512
-        } else {
-            0
-        };
-
-        let pgr_start_addr = 16 + offset;
-        validate_nes_constant(&buf)?;
-        return Ok(Cartridge {
-            bytes: buf,
-            prg_ram: vec![0u8; 0x2000],
-            prg_size,
-            prg_start_addr: pgr_start_addr,
-            chr_size,
-            flag_6: FLAG6::from_bits(flag6).unwrap(),
-            flag_7: FLAG7::from_bits(flag7).unwrap(),
-            mapper,
-        });
+    pub fn load_rom_from_bytes(bytes: &[u8]) -> Result<Cartridge, Error> {
+        Cartridge::parse_cartridge(bytes.to_vec())
     }
 
     pub fn prg_rom_data(&self) -> &[u8] {
@@ -144,27 +117,59 @@ impl Cartridge {
             _ => println!("Non-standard ROM size: x 16KB"),
         }
     }
-}
 
-fn validate_nes_constant(buf: &Vec<u8>) -> Result<(), io::Error> {
-    if buf.len() < NES_CONSTANT.len() {
-        return Err(io::Error::new(
-            io::ErrorKind::InvalidData,
-            "Buffer too short to contain NES header",
-        ));
-    }
-
-    for (i, byte) in NES_CONSTANT.iter().enumerate() {
-        if buf[i] != *byte {
+    fn parse_cartridge(buf: Vec<u8>) -> Result<Cartridge, Error> {
+        if buf.len() < 7 {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
-                format!(
-                    "Invalid NES header at byte {}: expected 0x{:02X}, found 0x{:02X}",
-                    i, byte, buf[i]
-                ),
+                "Buffer to short",
             ));
         }
+        let prg_size = buf[4];
+        let chr_size = buf[5];
+        let flag6 = buf[6];
+        let flag7 = buf[7];
+        let mapper = (flag7 & MAPPER_MASK) | ((flag6 & MAPPER_MASK) >> 4);
+        println!("Mapper number: {}", mapper);
+        let offset = if FLAG6::from_bits(flag6).unwrap().contains(FLAG6::Trainer) {
+            512
+        } else {
+            0
+        };
+        let pgr_start_addr = 16 + offset;
+        Cartridge::validate_nes_constant(&buf)?;
+        return Ok(Cartridge {
+            bytes: buf,
+            prg_ram: vec![0u8; 0x2000],
+            prg_size,
+            prg_start_addr: pgr_start_addr,
+            chr_size,
+            flag_6: FLAG6::from_bits(flag6).unwrap(),
+            flag_7: FLAG7::from_bits(flag7).unwrap(),
+            mapper,
+        });
     }
 
-    Ok(())
+    fn validate_nes_constant(buf: &Vec<u8>) -> Result<(), io::Error> {
+        if buf.len() < NES_CONSTANT.len() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "Buffer too short to contain NES header",
+            ));
+        }
+
+        for (i, byte) in NES_CONSTANT.iter().enumerate() {
+            if buf[i] != *byte {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    format!(
+                        "Invalid NES header at byte {}: expected 0x{:02X}, found 0x{:02X}",
+                        i, byte, buf[i]
+                    ),
+                ));
+            }
+        }
+
+        Ok(())
+    }
 }

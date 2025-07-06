@@ -1,15 +1,13 @@
 use std::{
     cell::RefCell,
-    error::Error,
     fmt::{self, Display, Formatter},
-    ops::Sub,
     rc::Rc,
 };
 
 use bitflags::bitflags;
 
 use crate::{
-    cartridge::{self, Cartridge},
+    cartridge::{Cartridge},
     opcodes::{resolve_opcode, AddressingMode, Instruction, Opcode},
 };
 

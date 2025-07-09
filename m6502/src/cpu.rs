@@ -1,15 +1,11 @@
-use std::{
-    cell::RefCell,
-    fmt::{self, Display, Formatter},
-    rc::Rc,
-};
+use std::
+    fmt::{self, Display, Formatter}
+;
 
 use bitflags::bitflags;
 
-use crate::{
-    cartridge::{Cartridge},
-    opcodes::{resolve_opcode, AddressingMode, Instruction, Opcode},
-};
+use crate::{bus::MainBus, opcodes::{resolve_opcode, AddressingMode, Instruction, Opcode}};
+
 
 pub const VECTOR_BASE: u8 = 0xFF;
 pub const RESET_VECTOR: u8 = 0xFC;
@@ -23,6 +19,8 @@ pub enum CpuError {
 #[derive(Debug)]
 pub struct Mos6502 {
     pub bus: MainBus,
+
+    //CPU registers
     pub pc: u16,
     pub p: PFlag,
     pub a: u8,
@@ -30,7 +28,7 @@ pub struct Mos6502 {
     pub y: u8,
     pub sp: u8,
 
-    //
+    //helpers
     pub fetched: u8,
     pub rel_addr: u16,
     pub abs_addr: u16,
@@ -46,74 +44,6 @@ bitflags! {
        const Unused =           0b0010_0000;
        const Overflow =         0b0100_0000;
        const Negative =         0b1000_0000;
-    }
-}
-
-#[derive(Debug)]
-pub struct MainBus {
-    cpuRam: [u8; 0x10000],
-    pub cartridge: Option<Rc<RefCell<Cartridge>>>,
-}
-
-impl MainBus {
-    pub fn new() -> MainBus {
-        return MainBus {
-            cpuRam: [0; 0x10000],
-            cartridge: None,
-        };
-    }
-    pub fn dump(&self) {
-        println!("{}", self);
-    }
-
-    pub fn load_cartridge(&mut self, cartridge: Rc<RefCell<Cartridge>>) {
-        self.cartridge = Some(cartridge);
-    }
-
-    pub fn read(&self, address: u16) -> u8 {
-        let addr = address as usize;
-        if let Some(c) = self.cartridge.as_ref() {
-            let borrowed = c.borrow_mut();
-            return match borrowed.read(addr) {
-                Ok(data) => data,
-                Err(_) => self.cpuRam[addr],
-            };
-        }
-        return 0;
-    }
-
-    pub fn write(&mut self, address: usize, value: u8) {
-        let addr = address as usize;
-        if let Some(c) = self.cartridge.as_ref() {
-            let mut borrowed = c.borrow_mut();
-            match borrowed.write(addr, value) {
-                Ok(_) => return,
-                _ => {}
-            }
-        }
-        match addr {
-            0x0000..=0x1FFF => {
-                println!(
-                    "[INFO] writing to CPU RAM addr:{:04X} value {}",
-                    addr, value
-                );
-                self.cpuRam[addr & 0x07FF] = value;
-            }
-            0x4000..=0x4017 => {
-                println!("[INFO] Ignoring APU write: ${:04X} = {}", addr, value);
-            }
-            _ => {
-                eprintln!("Unahandled address {:04X}", addr);
-            }
-        }
-    }
-
-    pub fn write_bytes(&mut self, address: usize, value: &[u8]) {
-        let mut start_address = address;
-        for byte in value {
-            self.write(start_address, *byte);
-            start_address += 1;
-        }
     }
 }
 
@@ -136,7 +66,7 @@ impl Mos6502 {
     }
 
     pub fn zero_page(&self) -> &[u8] {
-        return &self.bus.cpuRam[0x0000..0x00FF];
+        return &self.bus.cpu_ram[0x0000..0x00FF];
     }
 
     pub fn dump(&self) {
@@ -791,7 +721,7 @@ impl Display for MainBus {
         writeln!(f, "+---------------- 2 KiB RAM ----------------+")?;
         writeln!(f)?;
         writeln!(f, "----------------- ZERO PAGE -----------------")?;
-        for (row, chunk) in self.cpuRam.chunks(16).enumerate() {
+        for (row, chunk) in self.cpu_ram.chunks(16).enumerate() {
             let row16 = row * 16;
             if row16 == 0x0100 {
                 writeln!(f, "----------------- STACK -----------------")?;

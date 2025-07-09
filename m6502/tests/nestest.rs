@@ -15,10 +15,7 @@ mod tests {
     };
 
     use m6502::{
-        cartridge::Cartridge,
-        cpu::{MainBus, Mos6502},
-        helpers::cpu_dump_state,
-        opcodes::Opcode,
+        bus::MainBus, cartridge::Cartridge, cpu::Mos6502, helpers::cpu_dump_state, opcodes::Opcode
     };
 
     use crate::{compare_cpu_state, read_file_and_parse};

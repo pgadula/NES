@@ -70,6 +70,15 @@ impl Cartridge {
         &self.bytes[start..end]
     }
 
+    pub fn backgrounds(&self) ->&[u8]{
+        return &self.chr_rom_data()[0..4096]
+    }
+
+
+    pub fn sprites(&self) ->&[u8]{
+        return &self.chr_rom_data()[4096..]
+    }
+
     pub fn has_trainer(&self) -> bool {
         self.flag_6.contains(FLAG6::Trainer)
     }

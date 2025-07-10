@@ -139,9 +139,7 @@ impl Mos6502 {
     }
 
     pub fn execute(&mut self, instruction: Instruction) {
-        println!("PC:{:02x}", self.pc);
         self.pc += 1;
-        println!("incremented PC:{:02x}", self.pc);
         match instruction.0 {
             Opcode::ADC => {
                 instruction.1.apply(self);

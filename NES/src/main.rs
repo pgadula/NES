@@ -4,7 +4,7 @@ use m6502::cartridge::Cartridge;
 
 fn main() -> Result<(), Error> {
     let c = Cartridge::load_rom(Path::new("resources/sm.nes"))?;
-   let background = c.sprites().to_vec();
+   let background = c.backgrounds().to_vec();
     for planes in background.chunks(16) {
        display_sprite(planes); 
        println!()

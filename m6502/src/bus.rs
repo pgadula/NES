@@ -1,18 +1,20 @@
 use std::{cell::RefCell, rc::Rc};
 
-use crate::cartridge::Cartridge;
+use crate::{cartridge::Cartridge, ppu::{self, PPU}};
 
 #[derive(Debug)]
 pub struct MainBus {
     pub cpu_ram: [u8; 0x10000],
     pub cartridge: Option<Rc<RefCell<Cartridge>>>,
+    pub ppu: PPU
 }
 
 impl MainBus {
-    pub fn new() -> MainBus {
+    pub fn new(ppu: PPU) -> MainBus {
         return MainBus {
             cpu_ram: [0; 0x10000],
             cartridge: None,
+            ppu
         };
     }
     pub fn dump(&self) {
@@ -32,6 +34,21 @@ impl MainBus {
                 Err(_) => self.cpu_ram[addr],
             };
         }
+        match address {
+            0x0000..=0x1FFF => {
+                println!("\x1b[32m[INFO] reading from CPU\x1b[0m");
+                return self.cpu_ram[address as usize]
+            }
+            0x2000..=0x3FFF => {
+                println!("\x1b[32m[INFO] reading from PPU\x1b[0m");
+                return self.ppu.read(address).unwrap()
+            }
+            0x4000..=0xFFFF => {
+            }
+        }
+
+
+
         return 0;
     }
 
@@ -47,13 +64,17 @@ impl MainBus {
         match addr {
             0x0000..=0x1FFF => {
                 println!(
-                    "[INFO] writing to CPU RAM addr:{:04X} value {}",
+                    "\x1b[32m[INFO] writing to CPU RAM addr:{:04X} value {}\x1b[0m",
                     addr, value
                 );
                 self.cpu_ram[addr & 0x07FF] = value;
             }
+            0x2000..=0x3FFF =>{
+                self.ppu.write(addr as u16,value);
+            }
             0x4000..=0x4017 => {
-                println!("[INFO] Ignoring APU write: ${:04X} = {}", addr, value);
+                println!(
+                    "\x1b[32m[INFO] writing to APU addr:{:04X} value {}\x1b[0m", addr, value);
             }
             _ => {
                 eprintln!("Unahandled address {:04X}", addr);

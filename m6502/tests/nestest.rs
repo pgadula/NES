@@ -15,28 +15,29 @@ mod tests {
     };
 
     use m6502::{
-        bus::MainBus, cartridge::Cartridge, cpu::Mos6502, helpers::cpu_dump_state, opcodes::Opcode
+        bus::MainBus, cartridge::Cartridge, cpu::Mos6502, helpers::cpu_dump_state, opcodes::Opcode, ppu::PPU
     };
 
     use crate::{compare_cpu_state, read_file_and_parse};
 
     #[test]
     fn nestests() {
-        let mut bus = MainBus::new();
         let cartridge = Rc::new(RefCell::new(
             Cartridge::load_rom(Path::new(
                 "resources/nestest.nes",
             ))
             .unwrap(),
         ));
-        bus.load_cartridge(cartridge);
+        let ppu: PPU = PPU::new(cartridge.clone());
+        let mut bus = MainBus::new(ppu);
+        bus.load_cartridge(cartridge.clone());
         let mut logs =
             read_file_and_parse("resources/nestest.log")
                 .unwrap()
                 .into_iter();
         let mut cpu = Mos6502::new(bus);
         cpu.pc = 0xC000;
-        let mut n_step = 8991;
+        let mut n_step = 8991;;
         let mut running = true;
         let mut line: i32 = 0;
         while running {

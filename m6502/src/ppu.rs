@@ -2,6 +2,7 @@ use std::{cell::RefCell, rc::Rc};
 
 use crate::cartridge::Cartridge;
 
+#[derive(Debug)]
 pub struct PPU{
    cartridge: Rc<RefCell<Cartridge>>,
    ppu_crtl: u8,
@@ -39,7 +40,6 @@ impl PPU {
          0x2000..=0x3FFF => 0x2000 + (address % 8 ),
          _ => address,
       };
-
       match addr {
          0x2000 => Some(self.ppu_crtl),
          0x2001 => Some(self.ppu_mask),
@@ -55,6 +55,26 @@ impl PPU {
             None
          }
       }
+   }
+   pub fn write(& mut self, address: u16, value: u8){
+      let addr = match address {
+         0x2000..=0x3FFF => 0x2000 + (address % 8 ),
+         _ => address,
+      };
+      match addr {
+         0x2000 => {self.ppu_crtl = value},
+         0x2001 => {self.ppu_mask = value},
+         0x2002 => {self.ppu_status = value},
+         0x2003 => {self.oam_addr = value},
+         0x2004 => {self.oam_data = value},
+         0x2005 => {self.ppu_scroll = value},
+         0x2006 => {self.ppu_addr = value},
+         0x2007 => {self.ppu_data = value},
+         0x4014 => {self.oam_dma = value},
+         _ => {
+            eprintln!("[Error] addr:{:04x} out of boundary.", addr);
+         }
+      };
    }
 
 }

@@ -27,12 +27,12 @@ impl MainBus {
 
     pub fn read(&self, address: u16) -> u8 {
         let addr = address as usize;
+
         if let Some(c) = self.cartridge.as_ref() {
-            let borrowed = c.borrow_mut();
-            return match borrowed.read(addr) {
-                Ok(data) => data,
-                Err(_) => self.cpu_ram[addr],
-            };
+            println!("[INFO] reading from cartridge {:04x}", addr);
+            if let Ok(data) = c.borrow_mut().read(addr) {
+            return data;
+            }
         }
         match address {
             0x0000..=0x1FFF => {
@@ -44,12 +44,11 @@ impl MainBus {
                 return self.ppu.read(address).unwrap()
             }
             0x4000..=0xFFFF => {
+                eprintln!("reading from unknown device");
+                return 0
             }
         }
 
-
-
-        return 0;
     }
 
     pub fn write(&mut self, address: usize, value: u8) {
@@ -70,6 +69,8 @@ impl MainBus {
                 self.cpu_ram[addr & 0x07FF] = value;
             }
             0x2000..=0x3FFF =>{
+
+                println!("\x1b[32m[INFO] writing to PPU RAM addr:{:04X} value {}\x1b[0m", addr, value);
                 self.ppu.write(addr as u16,value);
             }
             0x4000..=0x4017 => {

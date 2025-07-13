@@ -64,7 +64,7 @@ impl PPU {
       match addr {
          0x2000 => {self.ppu_crtl = value},
          0x2001 => {self.ppu_mask = value},
-         0x2002 => {self.ppu_status = value},
+         0x2002 => { eprintln!("[Error] cannot write to addr 0x2002")},
          0x2003 => {self.oam_addr = value},
          0x2004 => {self.oam_data = value},
          0x2005 => {self.ppu_scroll = value},

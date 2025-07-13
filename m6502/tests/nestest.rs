@@ -15,7 +15,7 @@ mod tests {
     };
 
     use m6502::{
-        bus::MainBus, cartridge::Cartridge, cpu::Mos6502, helpers::cpu_dump_state, opcodes::Opcode, ppu::PPU
+        bus::MainBus, cartridge::Cartridge, cpu::Mos6502, helpers::{cpu_dump_state, hex_dump}, opcodes::Opcode, ppu::PPU
     };
 
     use crate::{compare_cpu_state, read_file_and_parse};
@@ -75,6 +75,7 @@ mod tests {
                 }
             }
         }
+        hex_dump( &cartridge.clone().borrow_mut().prg_ram)
     }
 }
 

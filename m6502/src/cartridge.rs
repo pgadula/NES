@@ -103,6 +103,7 @@ impl Cartridge {
             let prg = self.prg_rom_data();
             let prg_len = prg.len(); // 16KB or 32KB
             let offset = (addr - 0x8000) % prg_len;
+
             return Ok(prg[offset]);
         }
         return Err(io::Error::new(

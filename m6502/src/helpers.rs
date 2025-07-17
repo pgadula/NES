@@ -1,4 +1,4 @@
-use crate::cpu::{self, Mos6502};
+use crate::cpu::{self};
 
 pub fn hex_dump(buff: &[u8]) {
     for (i, chunk) in buff.chunks(16).enumerate() {

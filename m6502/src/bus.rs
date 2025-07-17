@@ -25,7 +25,7 @@ impl MainBus {
         self.cartridge = Some(cartridge);
     }
 
-    pub fn read(&self, address: u16) -> u8 {
+    pub fn read(&mut self, address: u16) -> u8 {
         let addr = address as usize;
 
         if let Some(c) = self.cartridge.as_ref() {
@@ -41,7 +41,7 @@ impl MainBus {
             }
             0x2000..=0x3FFF => {
                 println!("\x1b[32m[INFO] reading from PPU\x1b[0m");
-                return self.ppu.read(address).unwrap()
+                return self.ppu.cpu_read(address).unwrap()
             }
             0x4000..=0xFFFF => {
                 eprintln!("reading from unknown device");
@@ -71,7 +71,7 @@ impl MainBus {
             0x2000..=0x3FFF =>{
 
                 println!("\x1b[32m[INFO] writing to PPU RAM addr:{:04X} value {}\x1b[0m", addr, value);
-                self.ppu.write(addr as u16,value);
+                self.ppu.cpu_write(addr as u16,value);
             }
             0x4000..=0x4017 => {
                 println!(

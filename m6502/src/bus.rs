@@ -1,20 +1,23 @@
 use std::{cell::RefCell, rc::Rc};
 
-use crate::{cartridge::Cartridge, ppu::{self, PPU}};
+use crate::{
+    cartridge::Cartridge,
+    ppu::{PPU},
+};
 
 #[derive(Debug)]
 pub struct MainBus {
     pub cpu_ram: [u8; 0x10000],
     pub cartridge: Option<Rc<RefCell<Cartridge>>>,
-    pub ppu: PPU
+    pub ppu: Rc<RefCell<PPU>>
 }
 
 impl MainBus {
-    pub fn new(ppu: PPU) -> MainBus {
+    pub fn new(ppu: Rc<RefCell<PPU>>) -> MainBus {
         return MainBus {
             cpu_ram: [0; 0x10000],
             cartridge: None,
-            ppu
+            ppu,
         };
     }
     pub fn dump(&self) {
@@ -29,26 +32,26 @@ impl MainBus {
         let addr = address as usize;
 
         if let Some(c) = self.cartridge.as_ref() {
-            println!("[INFO] reading from cartridge {:04x}", addr);
             if let Ok(data) = c.borrow_mut().read(addr) {
-            return data;
+                println!("[INFO] reading from cartridge {:04x}", addr);
+
+                return data;
             }
         }
         match address {
             0x0000..=0x1FFF => {
                 println!("\x1b[32m[INFO] reading from CPU\x1b[0m");
-                return self.cpu_ram[address as usize]
+                return self.cpu_ram[address as usize];
             }
             0x2000..=0x3FFF => {
-                println!("\x1b[32m[INFO] reading from PPU\x1b[0m");
-                return self.ppu.cpu_read(address).unwrap()
+                println!("\x1b[32m[INFO] reading from PPU\x1b[0m {:04x}", address);
+                return self.ppu.borrow_mut().cpu_read(address).unwrap();
             }
             0x4000..=0xFFFF => {
                 eprintln!("reading from unknown device");
-                return 0
+                return 0;
             }
         }
-
     }
 
     pub fn write(&mut self, address: usize, value: u8) {
@@ -68,14 +71,23 @@ impl MainBus {
                 );
                 self.cpu_ram[addr & 0x07FF] = value;
             }
-            0x2000..=0x3FFF =>{
+            0x2000..=0x3FFF => {
+                println!(
+                    "\x1b[32m[INFO] writing to PPU RAM addr:{:04X} value {}\x1b[0m",
+                    addr, value
+                );
+                if addr > 0x200f{
 
-                println!("\x1b[32m[INFO] writing to PPU RAM addr:{:04X} value {}\x1b[0m", addr, value);
-                self.ppu.cpu_write(addr as u16,value);
+                    panic!("writing to ppu");
+                }
+                    
+                self.ppu.borrow_mut().cpu_write(addr as u16, value);
             }
             0x4000..=0x4017 => {
                 println!(
-                    "\x1b[32m[INFO] writing to APU addr:{:04X} value {}\x1b[0m", addr, value);
+                    "\x1b[32m[INFO] writing to APU addr:{:04X} value {}\x1b[0m",
+                    addr, value
+                );
             }
             _ => {
                 eprintln!("Unahandled address {:04X}", addr);

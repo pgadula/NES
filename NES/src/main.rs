@@ -1,4 +1,4 @@
-use std::{cell::RefCell, io::Error, path::Path, rc::Rc, thread, time::Duration};
+use std::{cell::RefCell, io::{self, BufRead, Error}, path::Path, rc::Rc};
 
 use m6502::{
     bus::{self, MainBus},
@@ -10,8 +10,8 @@ fn main() -> Result<(), Error> {
     let c = Rc::new(RefCell::new(Cartridge::load_rom(Path::new(
         "resources/dp.nes",
     ))?));
-    let mut ppu = PPU::new(c.clone());
-    let mut main_bus = MainBus::new(ppu);
+    let ppu = Rc::new(RefCell::new(PPU::new(c.clone())));
+    let mut main_bus = MainBus::new(ppu.clone());
     main_bus.load_cartridge(c.clone());
     let lo = main_bus.read(0xFFFC);
     let hi = main_bus.read(0xFFFD);
@@ -29,12 +29,24 @@ fn main() -> Result<(), Error> {
             Ok(instr) => {
                 println!("[{line}] Fetched {:?} {:?}", instr.0, instr.1);
                 cpu.execute(instr);
-                cpu.dump();
-                thread::sleep(Duration::from_millis(200));
+                // cpu.dump();
             }
             Err(_) => {
                 running = false;
             }
+        }
+        for _ in 0..3 {
+            ppu.borrow_mut().tick();
+        }
+        
+        // ppu.borrow().dump();
+        if(ppu.borrow().scanline == 241){
+            println!("\x1b[41mVBlank start detected\x1b[0m");
+            let stdin = io::stdin();
+                let mut line = String::new();
+
+    stdin.lock().read_line(&mut line).unwrap();
+
         }
         line += 1;
     }

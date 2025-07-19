@@ -139,8 +139,10 @@ impl PPU {
         println!("  PPUADDR:  0x{:02X}", self.ppu_addr);
         println!("  PPUDATA:  0x{:02X}", self.ppu_data);
         println!("  OAMDMA:   0x{:02X}", self.oam_dma);
+
         // Optionally dump a small part of VRAM:
         println!("  VRAM[0x2000..0x200F]: {:?}", &self.vram[0x0000..0x0010]);
+        
         // Palette sample:
         println!("  Palette[0..8]: {:?}", &self.palette[0..8]);
     }

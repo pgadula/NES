@@ -1,14 +1,14 @@
-use std::{cell::RefCell, io::{self, BufRead, Error}, path::Path, rc::Rc};
+use std::{cell::RefCell, io::Error, path::Path, rc::Rc};
 
 use m6502::{
-    bus::{self, MainBus},
+    bus::{MainBus},
     cartridge::Cartridge,
     ppu::PPU,
 };
 
 fn main() -> Result<(), Error> {
     let c = Rc::new(RefCell::new(Cartridge::load_rom(Path::new(
-        "resources/dp.nes",
+        "resources/sm.nes",
     ))?));
     let ppu = Rc::new(RefCell::new(PPU::new(c.clone())));
     let mut main_bus = MainBus::new(ppu.clone());
@@ -23,7 +23,7 @@ fn main() -> Result<(), Error> {
         println!()
     }
     let mut running = true;
-    let mut line = 0;
+    let mut line:u64 = 0;
     while running {
         match cpu.fetch() {
             Ok(instr) => {
@@ -39,14 +39,8 @@ fn main() -> Result<(), Error> {
             ppu.borrow_mut().tick();
         }
         
-        // ppu.borrow().dump();
-        if(ppu.borrow().scanline == 241){
+        if ppu.borrow().scanline == 241 {
             println!("\x1b[41mVBlank start detected\x1b[0m");
-            let stdin = io::stdin();
-                let mut line = String::new();
-
-    stdin.lock().read_line(&mut line).unwrap();
-
         }
         line += 1;
     }

@@ -29,7 +29,7 @@ mod tests {
             .unwrap(),
         ));
         let ppu: PPU = PPU::new(cartridge.clone());
-        let mut bus = MainBus::new(ppu);
+        let mut bus = MainBus::new(Rc::new(RefCell::new(ppu)));
         bus.load_cartridge(cartridge.clone());
         let mut logs =
             read_file_and_parse("resources/nestest.log")
@@ -37,7 +37,7 @@ mod tests {
                 .into_iter();
         let mut cpu = Mos6502::new(bus);
         cpu.pc = 0xC000;
-        let mut n_step = 8991;;
+        let mut n_step = 8991;
         let mut running = true;
         let mut line: i32 = 0;
         while running {

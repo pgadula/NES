@@ -98,7 +98,6 @@ impl Cartridge {
         if addr >= 0x6000 && addr <= 0x7FFF {
             return Ok(self.prg_ram[addr.wrapping_sub(0x6000)]);
         }
-
         if addr >= 0x8000 && addr <= 0xFFFF {
             let prg = self.prg_rom_data();
             let prg_len = prg.len(); // 16KB or 32KB

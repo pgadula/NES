@@ -66,19 +66,19 @@ impl MainBus {
         match addr {
             0x0000..=0x1FFF => {
                 println!(
-                    "\x1b[32m[INFO] writing to CPU RAM addr:{:04X} value {}\x1b[0m",
+                    "\x1b[32m[INFO] Writing to CPU RAM addr:{:04X} value {}\x1b[0m",
                     addr, value
                 );
                 self.cpu_ram[addr & 0x07FF] = value;
             }
             0x2000..=0x3FFF => {
                 println!(
-                    "\x1b[32m[INFO] writing to PPU RAM addr:{:04X} value {}\x1b[0m",
+                    "\x1b[32m[INFO] Writing to PPU RAM addr:{:04X} value {}\x1b[0m",
                     addr, value
                 );
                 if addr > 0x200f{
 
-                    panic!("writing to ppu");
+                    panic!("Writing to ppu");
                 }
                     
                 self.ppu.borrow_mut().cpu_write(addr as u16, value);

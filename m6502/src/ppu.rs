@@ -63,7 +63,10 @@ impl PPU {
             0x2003 => Some(self.oam_addr),
             0x2004 => Some(self.oam_data),
             0x2005 => Some(self.ppu_scroll),
-            0x2006 => Some(self.ppu_addr),
+            0x2006 => {
+                panic!("writing to 0x2006");
+                
+                Some(self.ppu_addr)},
             0x2007 => Some(self.ppu_data),
             0x4014 => Some(self.oam_dma),
             _ => {

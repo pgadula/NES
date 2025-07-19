@@ -4,7 +4,7 @@ use std::
 
 use bitflags::bitflags;
 
-use crate::{bus::MainBus, opcodes::{resolve_opcode, AddressingMode, Instruction, Opcode}};
+use crate::{bus::MainBus, opcodes::{resolve_opcode, AddressingMode, Opcode, Mnemonic}};
 
 
 pub const VECTOR_BASE: u8 = 0xFF;
@@ -114,7 +114,7 @@ impl Mos6502 {
         u16::from(lo) + (u16::from(hi) << 8usize)
     }
 
-    pub fn fetch(&mut self) -> Result<(Instruction), CpuError> {
+    pub fn fetch(&mut self) -> Result<(Opcode), CpuError> {
         let opcode = self.bus.read(self.pc);
         let resolved = resolve_opcode(opcode);
         match resolved {
@@ -138,10 +138,10 @@ impl Mos6502 {
         self.p.set(PFlag::Carry, value > 0xFF);
     }
 
-    pub fn execute(&mut self, instruction: Instruction) {
+    pub fn execute(&mut self, instruction: Opcode) {
         self.pc += 1;
         match instruction.0 {
-            Opcode::ADC => {
+            Mnemonic::ADC => {
                 instruction.1.apply(self);
                 let carrying = if self.p.contains(PFlag::Carry) { 1 } else { 0 };
                 let v1 = self.fetched as u16 + carrying;
@@ -154,14 +154,14 @@ impl Mos6502 {
                 self.update_overflow_flag(a as u8, self.fetched, sum as u8);
                 self.a = sum as u8;
             }
-            Opcode::AND => {
+            Mnemonic::AND => {
                 instruction.1.apply(self);
                 let value = self.a & self.fetched;
                 self.update_zero_flag(value);
                 self.update_neg_flag(value);
                 self.a = value;
             }
-            Opcode::ASL => {
+            Mnemonic::ASL => {
                 let mut value: u16;
                 if instruction.1 == AddressingMode::Implied
                     || instruction.1 == AddressingMode::Accumulator
@@ -183,28 +183,28 @@ impl Mos6502 {
                     self.bus.write(self.abs_addr as usize, value as u8);
                 }
             }
-            Opcode::BCC => {
+            Mnemonic::BCC => {
                 instruction.1.apply(self);
                 if !self.p.contains(PFlag::Carry) {
                     let offset = self.fetched as i8 as i32;
                     self.pc = (self.pc as i32 + offset) as u16;
                 }
             }
-            Opcode::BCS => {
+            Mnemonic::BCS => {
                 instruction.1.apply(self);
                 if self.p.contains(PFlag::Carry) {
                     let offset = self.fetched as i8 as i32;
                     self.pc = (self.pc as i32 + offset) as u16;
                 }
             }
-            Opcode::BEQ => {
+            Mnemonic::BEQ => {
                 instruction.1.apply(self);
                 if self.p.contains(PFlag::Zero) {
                     let offset = self.fetched as i8 as i32;
                     self.pc = (self.pc as i32 + offset) as u16;
                 }
             }
-            Opcode::BIT => {
+            Mnemonic::BIT => {
                 instruction.1.apply(self);
                 let value = self.a & self.fetched;
 
@@ -212,28 +212,28 @@ impl Mos6502 {
                 self.p.set(PFlag::Negative, self.fetched & 0x80 != 0);
                 self.p.set(PFlag::Overflow, self.fetched & 0x40 != 0);
             }
-            Opcode::BMI => {
+            Mnemonic::BMI => {
                 instruction.1.apply(self);
                 if self.p.contains(PFlag::Negative) {
                     let offset = self.fetched as i8 as i32;
                     self.pc = (self.pc as i32 + offset) as u16;
                 }
             }
-            Opcode::BNE => {
+            Mnemonic::BNE => {
                 instruction.1.apply(self);
                 if !self.p.contains(PFlag::Zero) {
                     let offset = self.fetched as i8 as i32;
                     self.pc = (self.pc as i32 + offset) as u16;
                 }
             }
-            Opcode::BPL => {
+            Mnemonic::BPL => {
                 instruction.1.apply(self);
                 if !self.p.contains(PFlag::Negative) {
                     let offset = self.fetched as i8 as i32;
                     self.pc = (self.pc as i32 + offset) as u16;
                 }
             }
-            Opcode::BRK => {
+            Mnemonic::BRK => {
                 instruction.1.apply(self);
                 let ret_address = self.pc;
                 let high_byte: u8 = (ret_address >> 8) as u8;
@@ -247,25 +247,25 @@ impl Mos6502 {
                 let hi = self.bus.read(0xFFFF);
                 self.pc = Mos6502::get_address_from_bytes(hi, lo)
             }
-            Opcode::BVC => {
+            Mnemonic::BVC => {
                 instruction.1.apply(self);
                 if !self.p.contains(PFlag::Overflow) {
                     let offset = self.fetched as i8 as i32;
                     self.pc = (self.pc as i32 + offset) as u16;
                 }
             }
-            Opcode::BVS => {
+            Mnemonic::BVS => {
                 instruction.1.apply(self);
                 if self.p.contains(PFlag::Overflow) {
                     let offset = self.fetched as i8 as i32;
                     self.pc = (self.pc as i32 + offset) as u16;
                 }
             }
-            Opcode::CLC => self.p.remove(PFlag::Carry),
-            Opcode::CLD => self.p.remove(PFlag::DecimalMode),
-            Opcode::CLI => self.p.remove(PFlag::InterruptDisable),
-            Opcode::CLV => self.p.remove(PFlag::Overflow),
-            Opcode::DCP => {
+            Mnemonic::CLC => self.p.remove(PFlag::Carry),
+            Mnemonic::CLD => self.p.remove(PFlag::DecimalMode),
+            Mnemonic::CLI => self.p.remove(PFlag::InterruptDisable),
+            Mnemonic::CLV => self.p.remove(PFlag::Overflow),
+            Mnemonic::DCP => {
                 instruction.1.apply(self);
                 let decremented = self.bus.read(self.abs_addr).wrapping_sub(1);
                 self.bus.write(self.abs_addr as usize, decremented);
@@ -274,61 +274,61 @@ impl Mos6502 {
                 self.update_zero_flag(result);
                 self.p.set(PFlag::Carry, self.a >= decremented);
             }
-            Opcode::CMP => {
+            Mnemonic::CMP => {
                 instruction.1.apply(self);
                 let value = (self.a as u16).wrapping_sub(self.fetched as u16);
                 self.update_neg_flag(value as u8);
                 self.update_zero_flag(value as u8);
                 self.p.set(PFlag::Carry, self.a >= self.fetched as u8);
             }
-            Opcode::CPX => {
+            Mnemonic::CPX => {
                 instruction.1.apply(self);
                 let value = (self.x as u16).wrapping_sub(self.fetched as u16);
                 self.p.set(PFlag::Carry, self.x >= self.fetched as u8);
                 self.update_zero_flag(value as u8);
                 self.update_neg_flag(value as u8);
             }
-            Opcode::CPY => {
+            Mnemonic::CPY => {
                 instruction.1.apply(self);
                 let value = (self.y as u16).wrapping_sub(self.fetched as u16);
                 self.p.set(PFlag::Carry, self.y >= self.fetched as u8);
                 self.update_neg_flag(value as u8);
                 self.update_zero_flag(value as u8);
             }
-            Opcode::DEC => {
+            Mnemonic::DEC => {
                 instruction.1.apply(self);
                 let value = self.bus.read(self.abs_addr).wrapping_sub(1);
                 self.update_neg_flag(value);
                 self.update_zero_flag(value);
                 self.bus.write(self.abs_addr.into(), value);
             }
-            Opcode::DEX => {
+            Mnemonic::DEX => {
                 instruction.1.apply(self);
                 self.x = self.x.wrapping_sub(1);
                 self.update_neg_flag(self.x);
                 self.update_zero_flag(self.x);
             }
-            Opcode::DEY => {
+            Mnemonic::DEY => {
                 instruction.1.apply(self);
                 self.y = self.y.wrapping_sub(1);
                 self.update_neg_flag(self.y);
                 self.update_zero_flag(self.y);
             }
-            Opcode::EOR => {
+            Mnemonic::EOR => {
                 instruction.1.apply(self);
                 let value = self.a ^ self.fetched;
                 self.update_zero_flag(value);
                 self.update_neg_flag(value);
                 self.a = value;
             }
-            Opcode::INC => {
+            Mnemonic::INC => {
                 instruction.1.apply(self);
                 let value = self.bus.read(self.abs_addr).wrapping_add(1);
                 self.update_neg_flag(value);
                 self.update_zero_flag(value);
                 self.bus.write(self.abs_addr.into(), value);
             }
-            Opcode::ISB => {
+            Mnemonic::ISB => {
                 instruction.1.apply(self);
 
                 let fetched = self.bus.read(self.abs_addr).wrapping_add(1);
@@ -346,19 +346,19 @@ impl Mos6502 {
                 self.update_zero_flag(self.a);
                 self.update_neg_flag(self.a);
             }
-            Opcode::INX => {
+            Mnemonic::INX => {
                 instruction.1.apply(self);
                 self.x = self.x.wrapping_add(1);
                 self.update_neg_flag(self.x);
                 self.update_zero_flag(self.x);
             }
-            Opcode::INY => {
+            Mnemonic::INY => {
                 instruction.1.apply(self);
                 self.y = self.y.wrapping_add(1);
                 self.update_neg_flag(self.y);
                 self.update_zero_flag(self.y);
             }
-            Opcode::JMP => {
+            Mnemonic::JMP => {
                 instruction.1.apply(self);
                 match instruction.1 {
                     AddressingMode::Absolute => {
@@ -382,7 +382,7 @@ impl Mos6502 {
                     }
                 }
             }
-            Opcode::JSR => {
+            Mnemonic::JSR => {
                 instruction.1.apply(self);
                 let ret_address = self.pc.wrapping_sub(1);
                 let high_byte: u8 = (ret_address >> 8) as u8;
@@ -391,32 +391,32 @@ impl Mos6502 {
                 self.push(low_byte);
                 self.pc = self.abs_addr;
             }
-            Opcode::LDA => {
+            Mnemonic::LDA => {
                 instruction.1.apply(self);
                 self.a = self.fetched;
                 self.update_neg_flag(self.fetched);
                 self.update_zero_flag(self.fetched);
             }
-            Opcode::LDX => {
+            Mnemonic::LDX => {
                 instruction.1.apply(self);
                 self.x = self.fetched;
                 self.update_neg_flag(self.fetched);
                 self.update_zero_flag(self.fetched);
             }
-            Opcode::LAX => {
+            Mnemonic::LAX => {
                 instruction.1.apply(self);
                 self.x = self.fetched;
                 self.a = self.fetched;
                 self.update_neg_flag(self.fetched);
                 self.update_zero_flag(self.fetched);
             }
-            Opcode::LDY => {
+            Mnemonic::LDY => {
                 instruction.1.apply(self);
                 self.y = self.fetched;
                 self.update_neg_flag(self.fetched);
                 self.update_zero_flag(self.fetched);
             }
-            Opcode::LSR => {
+            Mnemonic::LSR => {
                 instruction.1.apply(self);
                 self.p.set(PFlag::Carry, self.fetched & 0x01 != 0);
                 let temp = self.fetched as u16 >> 1;
@@ -430,39 +430,39 @@ impl Mos6502 {
                 }
                 self.update_zero_flag(temp as u8);
             }
-            Opcode::NOP => {
+            Mnemonic::NOP => {
                 instruction.1.apply(self);
             }
-            Opcode::UndocumentedNOP => {
+            Mnemonic::UndocumentedNOP => {
                 instruction.1.apply(self);
             }
-            Opcode::ORA => {
+            Mnemonic::ORA => {
                 instruction.1.apply(self);
                 let value = self.a | self.fetched;
                 self.update_zero_flag(value);
                 self.update_neg_flag(value);
                 self.a = value;
             }
-            Opcode::PHA => {
+            Mnemonic::PHA => {
                 instruction.1.apply(self);
                 self.push(self.a);
             }
-            Opcode::PHP => {
+            Mnemonic::PHP => {
                 let value: u8 = (self.p.bits() as u8) | 0b00110000;
                 self.push(value);
             }
-            Opcode::PLA => {
+            Mnemonic::PLA => {
                 let value = self.pop();
                 self.update_zero_flag(value);
                 self.update_neg_flag(value);
                 self.a = value;
             }
-            Opcode::PLP => {
+            Mnemonic::PLP => {
                 let p = self.pop() & 0b11001111;
                 self.p = PFlag::from_bits(p).unwrap();
                 self.p.set(PFlag::Unused, true);
             }
-            Opcode::ROL => {
+            Mnemonic::ROL => {
                 instruction.1.apply(self);
                 let carry_in: u16 = if self.p.contains(PFlag::Carry) { 1 } else { 0 };
                 let carry_out = (self.fetched & 0b10000000) != 0;
@@ -478,7 +478,7 @@ impl Mos6502 {
                 }
                 self.update_zero_flag(temp as u8);
             }
-            Opcode::ROR => {
+            Mnemonic::ROR => {
                 instruction.1.apply(self);
                 let carry_in: u8 = if self.p.contains(PFlag::Carry) { 1 } else { 0 };
                 let carry_out = (self.fetched & 0x01) != 0;
@@ -494,7 +494,7 @@ impl Mos6502 {
                 }
                 self.update_zero_flag(temp as u8);
             }
-            Opcode::RTI => {
+            Mnemonic::RTI => {
                 instruction.1.apply(self);
                 let registers = self.pop();
                 let pc_l = self.pop();
@@ -503,13 +503,13 @@ impl Mos6502 {
                 self.p.set(PFlag::Unused, true);
                 self.pc = Mos6502::get_address_from_bytes(pc_h, pc_l)
             }
-            Opcode::RTS => {
+            Mnemonic::RTS => {
                 instruction.1.apply(self);
                 let low_byte = self.pop();
                 let high_byte = self.pop();
                 self.pc = Mos6502::get_address_from_bytes(high_byte, low_byte).wrapping_add(1)
             }
-            Opcode::SBC => {
+            Mnemonic::SBC => {
                 instruction.1.apply(self);
 
                 let value = self.fetched ^ 0xFF;
@@ -524,31 +524,31 @@ impl Mos6502 {
                 self.update_zero_flag(self.a);
                 self.update_neg_flag(self.a);
             }
-            Opcode::SEC => {
+            Mnemonic::SEC => {
                 instruction.1.apply(self);
                 self.p.set(PFlag::Carry, true);
             }
-            Opcode::SED => {
+            Mnemonic::SED => {
                 instruction.1.apply(self);
                 self.p.set(PFlag::DecimalMode, true);
             }
-            Opcode::SEI => {
+            Mnemonic::SEI => {
                 instruction.1.apply(self);
                 self.p.set(PFlag::InterruptDisable, true);
             }
-            Opcode::STA => {
+            Mnemonic::STA => {
                 instruction.1.apply(self);
                 self.bus.write(self.abs_addr as usize, self.a);
             }
-            Opcode::STX => {
+            Mnemonic::STX => {
                 instruction.1.apply(self);
                 self.bus.write(self.abs_addr as usize, self.x);
             }
-            Opcode::SAX => {
+            Mnemonic::SAX => {
                 instruction.1.apply(self);
                 self.bus.write(self.abs_addr as usize, self.x & self.a);
             }
-            Opcode::SLO => {
+            Mnemonic::SLO => {
                 instruction.1.apply(self);
                 self.p.set(PFlag::Carry, self.fetched & 0x80 != 0);
 
@@ -567,45 +567,45 @@ impl Mos6502 {
                 self.update_zero_flag(self.a);
                 self.update_neg_flag(self.a);
             }
-            Opcode::STY => {
+            Mnemonic::STY => {
                 instruction.1.apply(self);
                 self.bus.write(self.abs_addr as usize, self.y);
             }
-            Opcode::TAX => {
+            Mnemonic::TAX => {
                 instruction.1.apply(self);
                 self.x = self.a;
                 self.update_neg_flag(self.x);
                 self.update_zero_flag(self.x);
             }
-            Opcode::TAY => {
+            Mnemonic::TAY => {
                 instruction.1.apply(self);
                 self.y = self.a;
                 self.update_neg_flag(self.y);
                 self.update_zero_flag(self.y);
             }
-            Opcode::TSX => {
+            Mnemonic::TSX => {
                 instruction.1.apply(self);
                 self.x = self.sp;
                 self.update_neg_flag(self.x);
                 self.update_zero_flag(self.x);
             }
-            Opcode::TXA => {
+            Mnemonic::TXA => {
                 instruction.1.apply(self);
                 self.a = self.x;
                 self.update_neg_flag(self.a);
                 self.update_zero_flag(self.a);
             }
-            Opcode::TXS => {
+            Mnemonic::TXS => {
                 instruction.1.apply(self);
                 self.sp = self.x;
             }
-            Opcode::TYA => {
+            Mnemonic::TYA => {
                 instruction.1.apply(self);
                 self.a = self.y;
                 self.update_neg_flag(self.a);
                 self.update_zero_flag(self.a);
             }
-            Opcode::RLA => {
+            Mnemonic::RLA => {
                 instruction.1.apply(self);
                 let carry_in: u16 = if self.p.contains(PFlag::Carry) { 1 } else { 0 };
                 let carry_out = (self.fetched & 0b10000000) != 0;
@@ -617,7 +617,7 @@ impl Mos6502 {
 
                 self.update_zero_flag(temp as u8);
             }
-            Opcode::SRE => {
+            Mnemonic::SRE => {
                 instruction.1.apply(self);
                 self.p.set(PFlag::Carry, self.fetched & 0x01 != 0);
                 let shifted = (self.fetched >> 1);
@@ -631,7 +631,7 @@ impl Mos6502 {
                 self.update_neg_flag(self.a);
                 self.update_zero_flag(self.a);
             }
-            Opcode::RRA => {
+            Mnemonic::RRA => {
                 instruction.1.apply(self);
                 let carry_in: u8 = if self.p.contains(PFlag::Carry) { 1 } else { 0 };
                 let carry_out = (self.fetched & 0x01) != 0;

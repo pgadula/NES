@@ -1,15 +1,12 @@
 use std::{cell::RefCell, rc::Rc};
 
-use crate::{
-    cartridge::Cartridge,
-    ppu::{PPU},
-};
+use crate::{cartridge::Cartridge, ppu::PPU};
 
 #[derive(Debug)]
 pub struct MainBus {
     pub cpu_ram: [u8; 0x10000],
     pub cartridge: Option<Rc<RefCell<Cartridge>>>,
-    pub ppu: Rc<RefCell<PPU>>
+    pub ppu: Rc<RefCell<PPU>>,
 }
 
 impl MainBus {
@@ -33,7 +30,7 @@ impl MainBus {
 
         if let Some(c) = self.cartridge.as_ref() {
             if let Ok(data) = c.borrow_mut().read(addr) {
-                println!("[INFO] reading from cartridge {:04x}", addr);
+                // println!("[INFO] reading from cartridge {:04x}", addr);
 
                 return data;
             }
@@ -44,8 +41,12 @@ impl MainBus {
                 return self.cpu_ram[address as usize];
             }
             0x2000..=0x3FFF => {
-                println!("\x1b[32m[INFO] reading from PPU\x1b[0m {:04x}", address);
-                return self.ppu.borrow_mut().cpu_read(address).unwrap();
+                let value = self.ppu.borrow_mut().cpu_read(address).unwrap_or(0);
+                println!(
+                    "\x1b[32m[INFO] reading from PPU\x1b[0m {:04x}:{:04x}",
+                    address, value
+                );
+                value
             }
             0x4000..=0xFFFF => {
                 eprintln!("reading from unknown device");
@@ -76,11 +77,10 @@ impl MainBus {
                     "\x1b[32m[INFO] Writing to PPU RAM addr:{:04X} value {}\x1b[0m",
                     addr, value
                 );
-                if addr > 0x200f{
-
+                if addr > 0x200f {
                     panic!("Writing to ppu");
                 }
-                    
+
                 self.ppu.borrow_mut().cpu_write(addr as u16, value);
             }
             0x4000..=0x4017 => {

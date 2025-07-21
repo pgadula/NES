@@ -1,9 +1,12 @@
-use std::{cell::RefCell, io::Error, path::Path, rc::Rc};
+use std::{
+    cell::RefCell,
+    io::Error,
+    path::Path,
+    rc::Rc, thread, time::Duration,
+};
 
 use m6502::{
-    bus::{MainBus},
-    cartridge::Cartridge,
-    ppu::PPU,
+    bus::MainBus, cartridge::Cartridge, helpers::{disassembler, hex_dump}, opcodes::{resolve_opcode, AddressingMode}, ppu::PPU
 };
 
 fn main() -> Result<(), Error> {
@@ -22,30 +25,37 @@ fn main() -> Result<(), Error> {
         display_sprite(planes);
         println!()
     }
+    hex_dump(&c.borrow().prg_rom_data()[0..128]);
+    println!();
     let mut running = true;
-    let mut line:u64 = 0;
+    let mut line: u64 = 0;
     while running {
         match cpu.fetch() {
             Ok(instr) => {
+                // disassembler(&mut cpu, 1);
                 println!("[{line}] Fetched {:?} {:?}", instr.0, instr.1);
                 cpu.execute(instr);
                 // cpu.dump();
+                // thread::sleep(Duration::from_millis(50));
             }
             Err(_) => {
                 running = false;
             }
         }
-        for _ in 0..3 {
+        for _ in 0..(3 * 3) {
             ppu.borrow_mut().tick();
         }
-        
+        println!("scanline: {}", ppu.borrow().scanline);
         if ppu.borrow().scanline == 241 {
+            thread::sleep(Duration::from_millis(50));
             println!("\x1b[41mVBlank start detected\x1b[0m");
         }
         line += 1;
     }
     Ok(())
 }
+
+
 
 fn display_sprite(planes: &[u8]) {
     for row in 0..8 {

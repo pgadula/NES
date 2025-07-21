@@ -53,22 +53,33 @@ impl PPU {
             _ => address,
         };
         match addr {
-            0x2000 => Some(self.ppu_crtl),
-            0x2001 => Some(self.ppu_mask),
-            0x2002 => {
-                   self.ppu_status &= !0x80; // Clear VBlank
-
-                Some(self.ppu_status)
+            0x2000..=0x2001 => {
+                eprintln!("Cannot read from addr {:04x}", addr);
+                None
             }
-            0x2003 => Some(self.oam_addr),
+            0x2002 => {
+                let value = self.ppu_status;
+                self.ppu_status &= !0x80; 
+                Some(value)
+            }
+            0x2003 => {
+                eprintln!("Cannot read from addr {:04x}", addr);
+                None
+            }
             0x2004 => Some(self.oam_data),
-            0x2005 => Some(self.ppu_scroll),
+            0x2005 => {
+                eprintln!("Cannot read from addr {:04x}", addr);
+                None
+            },
             0x2006 => {
-                panic!("writing to 0x2006");
-                
-                Some(self.ppu_addr)},
+                eprintln!("Cannot read from addr {:04x}", addr);
+                None
+            }
             0x2007 => Some(self.ppu_data),
-            0x4014 => Some(self.oam_dma),
+            0x4014 => {
+                eprintln!("Cannot read from addr {:04x}", addr);
+                None
+            }
             _ => {
                 eprintln!("[Error] addr:{:04x} out of boundary.", addr);
                 None
@@ -77,6 +88,7 @@ impl PPU {
     }
 
     pub fn cpu_write(&mut self, address: u16, value: u8) {
+        panic!("WRiting PPU");
         let addr = match address {
             0x2000..=0x3FFF => 0x2000 + (address % 8),
             _ => address,
@@ -91,7 +103,8 @@ impl PPU {
             0x2003 => self.oam_addr = value,
             0x2004 => self.oam_data = value,
             0x2005 => self.ppu_scroll = value,
-            0x2006 => self.ppu_addr = value,
+            0x2006 => {
+                self.ppu_addr = value},
             0x2007 => self.ppu_data = value,
             0x4014 => self.oam_dma = value,
             _ => {

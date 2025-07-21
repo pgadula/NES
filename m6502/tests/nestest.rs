@@ -8,14 +8,15 @@ use m6502::{cpu::PFlag, helpers::CpuState};
 
 #[cfg(test)]
 mod tests {
-    use std::{
-        cell::RefCell,
-        path::Path,
-        rc::Rc,
-    };
+    use std::{cell::RefCell, path::Path, rc::Rc};
 
     use m6502::{
-        bus::MainBus, cartridge::Cartridge, cpu::Mos6502, helpers::{cpu_dump_state, hex_dump}, opcodes::Opcode, ppu::PPU
+        bus::MainBus,
+        cartridge::Cartridge,
+        cpu::Mos6502,
+        helpers::{cpu_dump_state, disassembler, hex_dump},
+        opcodes::{Mnemonic, Opcode},
+        ppu::PPU,
     };
 
     use crate::{compare_cpu_state, read_file_and_parse};
@@ -23,18 +24,14 @@ mod tests {
     #[test]
     fn nestests() {
         let cartridge = Rc::new(RefCell::new(
-            Cartridge::load_rom(Path::new(
-                "resources/nestest.nes",
-            ))
-            .unwrap(),
+            Cartridge::load_rom(Path::new("resources/nestest.nes")).unwrap(),
         ));
         let ppu: PPU = PPU::new(cartridge.clone());
         let mut bus = MainBus::new(Rc::new(RefCell::new(ppu)));
         bus.load_cartridge(cartridge.clone());
-        let mut logs =
-            read_file_and_parse("resources/nestest.log")
-                .unwrap()
-                .into_iter();
+        let mut logs = read_file_and_parse("resources/nestest.log")
+            .unwrap()
+            .into_iter();
         let mut cpu = Mos6502::new(bus);
         cpu.pc = 0xC000;
         let mut n_step = 8991;
@@ -49,6 +46,7 @@ mod tests {
                         "[{line}] Fetched: {:?} {:?}\t Log: {}",
                         instruction.0, instruction.1, log.instruction
                     );
+
                     let emu_state = cpu_dump_state(&cpu);
                     if let Err(error) = compare_cpu_state(&emu_state, &log.cpu_state) {
                         cpu.dump();
@@ -61,7 +59,7 @@ mod tests {
                     if cpu.bus.read(0x6000) != 0 {
                         panic!("nestest failed: error code = {}", cpu.bus.read(0x6000));
                     }
-                    running = if instruction.0 == Opcode::BRK {
+                    running = if instruction.0 == Mnemonic::BRK {
                         false
                     } else {
                         true
@@ -75,7 +73,7 @@ mod tests {
                 }
             }
         }
-        hex_dump( &cartridge.clone().borrow_mut().prg_ram)
+        hex_dump(&cartridge.clone().borrow_mut().prg_ram)
     }
 }
 

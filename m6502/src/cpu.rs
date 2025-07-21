@@ -109,7 +109,6 @@ impl Mos6502 {
         self.sp = 0xFD;
     }
 
-    //little endian low-order byte
     pub fn get_address_from_bytes(hi: u8, lo: u8) -> u16 {
         u16::from(lo) + (u16::from(hi) << 8usize)
     }

@@ -40,7 +40,7 @@ pub fn disassembler(cpu: &mut cpu::Mos6502, n_instruction:u16) {
         let operand_len = AddressingMode::get_bytes(mode) as u16;
         print!("{:?}", mnemonic);
 
-        for i in 0..operand_len {
+        for i in 1..operand_len {
             let byte = cpu.bus.read(cpu.pc + i + i);
             print!(" {:02x}", byte);
         }

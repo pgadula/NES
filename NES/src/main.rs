@@ -3,24 +3,23 @@ use std::{cell::RefCell, io::Error, path::Path, rc::Rc};
 use m6502::{bus::MainBus, cartridge::Cartridge, helpers::hex_dump, ppu::PPU};
 
 fn main() -> Result<(), Error> {
-    let c = Rc::new(RefCell::new(Cartridge::load_rom(Path::new(
+    let cartridge: Rc<RefCell<Cartridge>> = Rc::new(RefCell::new(Cartridge::load_rom(Path::new(
         "resources/sm.nes",
     ))?));
-    let ppu = Rc::new(RefCell::new(PPU::new(c.clone())));
+    let ppu = Rc::new(RefCell::new(PPU::new(cartridge.clone())));
     let mut main_bus = MainBus::new(ppu.clone());
-    println!("{:?}",c.borrow().mirroring);
-    panic!();
-    main_bus.load_cartridge(c.clone());
+    println!("{:?}",cartridge.borrow().mirroring);
+    main_bus.load_cartridge(cartridge.clone());
     let lo = main_bus.read(0xFFFC);
     let hi = main_bus.read(0xFFFD);
     let mut cpu = m6502::cpu::Mos6502::new(main_bus);
     cpu.pc = ((hi as u16) << 8) | (lo as u16);
-    let background = c.clone().borrow_mut().backgrounds().to_vec();
+    let background = cartridge.clone().borrow_mut().backgrounds().to_vec();
     for planes in background.chunks(16) {
         display_sprite(planes);
         println!()
     }
-    hex_dump(&c.borrow().prg_rom_data()[0..128]);
+    hex_dump(&cartridge.borrow().prg_rom_data()[0..128]);
     println!();
     let mut running = true;
     let mut line: u64 = 0;

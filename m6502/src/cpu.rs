@@ -619,7 +619,7 @@ impl Mos6502 {
             Mnemonic::SRE => {
                 instruction.1.apply(self);
                 self.p.set(PFlag::Carry, self.fetched & 0x01 != 0);
-                let shifted = (self.fetched >> 1);
+                let shifted = self.fetched >> 1;
                 self.p.set(PFlag::Negative, false);
                 if instruction.1 != AddressingMode::Implied
                     && instruction.1 != AddressingMode::Accumulator

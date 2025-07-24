@@ -1,17 +1,15 @@
-use std::{
-    cell::RefCell,
-    io::Error,
-    path::Path,
-    rc::Rc, thread, time::Duration,
-};
+use std::{cell::RefCell, io::Error, path::Path, rc::Rc};
 
 use m6502::{
-    bus::MainBus, cartridge::Cartridge, helpers::{disassembler, hex_dump}, opcodes::{resolve_opcode, AddressingMode}, ppu::PPU
+    bus::MainBus,
+    cartridge::Cartridge,
+    helpers::hex_dump,
+    ppu::PPU,
 };
 
 fn main() -> Result<(), Error> {
     let c = Rc::new(RefCell::new(Cartridge::load_rom(Path::new(
-        "resources/sm.nes",
+        "resources/nestest.nes",
     ))?));
     let ppu = Rc::new(RefCell::new(PPU::new(c.clone())));
     let mut main_bus = MainBus::new(ppu.clone());
@@ -32,30 +30,29 @@ fn main() -> Result<(), Error> {
     while running {
         match cpu.fetch() {
             Ok(instr) => {
-                // disassembler(&mut cpu, 1);
-                println!("[{line}] Fetched {:?} {:?}", instr.0, instr.1);
                 cpu.execute(instr);
-                // cpu.dump();
-                // thread::sleep(Duration::from_millis(50));
             }
             Err(_) => {
                 running = false;
             }
         }
-        for _ in 0..(3 * 3) {
-            ppu.borrow_mut().tick();
+        for _ in 0..(3) {
+            let mut nmi_closure = || cpu.nmi();
+            ppu.borrow_mut().tick(Some(&mut nmi_closure));
         }
-        println!("scanline: {}", ppu.borrow().scanline);
+        if ppu.borrow().get_incr() > 32 {
+            panic!("VALUE: {}", ppu.borrow().get_incr())
+        }
         if ppu.borrow().scanline == 241 {
-            thread::sleep(Duration::from_millis(50));
-            println!("\x1b[41mVBlank start detected\x1b[0m");
+        }
+        if line == 9999888 {
+            running = false;
         }
         line += 1;
     }
+    print_stable_colored_hex(&ppu.borrow().vram[0..1024 - 64]);
     Ok(())
 }
-
-
 
 fn display_sprite(planes: &[u8]) {
     for row in 0..8 {
@@ -70,6 +67,7 @@ fn display_sprite(planes: &[u8]) {
         println!("{}", color_from_index(0))
     }
 }
+
 fn color_from_index(index: u8) -> &'static str {
     match index {
         0 => "\x1b[40m  ",  // Black (Background)
@@ -82,4 +80,30 @@ fn color_from_index(index: u8) -> &'static str {
         7 => "\x1b[100m  ", // Dark Grey (Shadow/Depth)
         _ => "\x1b[0m  ",   // Reset
     }
+}
+fn print_stable_colored_hex(data: &[u8]) {
+    let colors = [
+        "\x1b[31m", // Red
+        "\x1b[32m", // Green
+        "\x1b[33m", // Yellow
+        "\x1b[34m", // Blue
+        "\x1b[35m", // Magenta
+        "\x1b[36m", // Cyan
+    ];
+    let reset = "\x1b[0m";
+
+    for (i, &byte) in data.iter().enumerate() {
+        // Map byte value to a color index based on the byte itself (stable)
+        let color_index = (byte as usize) % colors.len();
+        let color = colors[color_index];
+
+        print!("{}{:02X}{}", color, byte, reset);
+
+        if (i + 1) % 32 == 0 {
+            println!();
+        } else {
+            print!("");
+        }
+    }
+    println!();
 }

@@ -113,7 +113,7 @@ impl Mos6502 {
         u16::from(lo) + (u16::from(hi) << 8usize)
     }
 
-    pub fn fetch(&mut self) -> Result<(Opcode), CpuError> {
+    pub fn fetch(&mut self) -> Result<Opcode, CpuError> {
         let opcode = self.bus.read(self.pc);
         let resolved = resolve_opcode(opcode);
         match resolved {

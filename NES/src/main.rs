@@ -1,18 +1,15 @@
 use std::{cell::RefCell, io::Error, path::Path, rc::Rc};
 
-use m6502::{
-    bus::MainBus,
-    cartridge::Cartridge,
-    helpers::hex_dump,
-    ppu::PPU,
-};
+use m6502::{bus::MainBus, cartridge::Cartridge, helpers::hex_dump, ppu::PPU};
 
 fn main() -> Result<(), Error> {
     let c = Rc::new(RefCell::new(Cartridge::load_rom(Path::new(
-        "resources/nestest.nes",
+        "resources/sm.nes",
     ))?));
     let ppu = Rc::new(RefCell::new(PPU::new(c.clone())));
     let mut main_bus = MainBus::new(ppu.clone());
+    println!("{:?}",c.borrow().mirroring);
+    panic!();
     main_bus.load_cartridge(c.clone());
     let lo = main_bus.read(0xFFFC);
     let hi = main_bus.read(0xFFFD);
@@ -43,14 +40,17 @@ fn main() -> Result<(), Error> {
         if ppu.borrow().get_incr() > 32 {
             panic!("VALUE: {}", ppu.borrow().get_incr())
         }
-        if ppu.borrow().scanline == 241 {
-        }
-        if line == 9999888 {
+        if ppu.borrow().scanline == 241 {}
+        if line == 59999888 {
             running = false;
         }
         line += 1;
     }
     print_stable_colored_hex(&ppu.borrow().vram[0..1024 - 64]);
+    println!();
+    print_stable_colored_hex(&ppu.borrow().vram[1024..]);
+    println!();
+    print_stable_colored_hex(&ppu.borrow().vram[1024 - 64..(1024 - 64) + 64]);
     Ok(())
 }
 
@@ -82,27 +82,25 @@ fn color_from_index(index: u8) -> &'static str {
     }
 }
 fn print_stable_colored_hex(data: &[u8]) {
-    let colors = [
-        "\x1b[31m", // Red
-        "\x1b[32m", // Green
-        "\x1b[33m", // Yellow
-        "\x1b[34m", // Blue
-        "\x1b[35m", // Magenta
-        "\x1b[36m", // Cyan
-    ];
+    let mut colors: Vec<String> = Vec::new();
+
+    // Generate 128 colors (0–127)
+    for i in 0..128 {
+        colors.push(format!("\x1b[38;5;{}m", i));
+    }
     let reset = "\x1b[0m";
 
     for (i, &byte) in data.iter().enumerate() {
         // Map byte value to a color index based on the byte itself (stable)
         let color_index = (byte as usize) % colors.len();
-        let color = colors[color_index];
+        let color = colors[color_index].clone();
 
         print!("{}{:02X}{}", color, byte, reset);
 
         if (i + 1) % 32 == 0 {
             println!();
         } else {
-            print!("");
+            print!(".");
         }
     }
     println!();

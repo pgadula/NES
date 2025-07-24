@@ -8,6 +8,13 @@ use std::{
 const NES_CONSTANT: [u8; 4] = [0x4E, 0x45, 0x53, 0x1A];
 const MAPPER_MASK: u8 = 0b11110000;
 
+
+#[derive(Debug)]
+pub enum Mirroring {
+    Vertical,
+    Horizontal
+}
+
 bitflags! {
     #[derive(Debug)]
     pub struct FLAG6: u8 {
@@ -39,6 +46,7 @@ pub struct Cartridge {
     pub prg_size: u8,
     pub chr_size: u8,
     pub mapper: u8,
+    pub mirroring: Mirroring
 }
 
 impl Cartridge {
@@ -73,7 +81,6 @@ impl Cartridge {
     pub fn backgrounds(&self) ->&[u8]{
         return &self.chr_rom_data()[0..4096]
     }
-
 
     pub fn sprites(&self) ->&[u8]{
         return &self.chr_rom_data()[4096..]
@@ -137,6 +144,7 @@ impl Cartridge {
         } else {
             0
         };
+        let mirroring =  if flag6 & 1 != 0 { Mirroring::Horizontal } else { Mirroring::Vertical };
         let pgr_start_addr = 16 + offset;
         Cartridge::validate_nes_constant(&buf)?;
         return Ok(Cartridge {
@@ -148,6 +156,7 @@ impl Cartridge {
             flag_6: FLAG6::from_bits(flag6).unwrap(),
             flag_7: FLAG7::from_bits(flag7).unwrap(),
             mapper,
+            mirroring
         });
     }
 

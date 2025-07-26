@@ -4,7 +4,7 @@ use m6502::{bus::MainBus, cartridge::Cartridge, helpers::hex_dump, ppu::PPU};
 
 fn main() -> Result<(), Error> {
     let cartridge: Rc<RefCell<Cartridge>> = Rc::new(RefCell::new(Cartridge::load_rom(Path::new(
-        "resources/sm.nes",
+        "resources/nestest.nes",
     ))?));
     let ppu = Rc::new(RefCell::new(PPU::new(cartridge.clone())));
     let mut main_bus = MainBus::new(ppu.clone());

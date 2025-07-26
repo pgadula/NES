@@ -9,7 +9,7 @@ const NES_CONSTANT: [u8; 4] = [0x4E, 0x45, 0x53, 0x1A];
 const MAPPER_MASK: u8 = 0b11110000;
 
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Mirroring {
     Vertical,
     Horizontal

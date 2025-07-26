@@ -1,6 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
-use crate::cartridge::Cartridge;
+use crate::cartridge::{Cartridge, Mirroring};
 
 #[derive(Debug)]
 pub struct PPU {
@@ -60,6 +60,30 @@ impl PPU {
         } else {
             1
         };
+    }
+
+    pub fn get_nametable_addr(&self, addr: u16) -> u16 {
+        let mirroring = self.cartridge.borrow().mirroring;
+        match mirroring {
+            Mirroring::Horizontal => {
+                match addr {
+                    0x2000..=0x23FF => addr - 0x2000, // NT0
+                    0x2400..=0x27FF => addr - 0x2400, // NT1
+                    0x2800..=0x2BFF => addr - 0x2000, // mirror of NT0
+                    0x2C00..=0x2FFF => addr - 0x2400, // mirror of NT1
+                    _ => panic!("Invalid range"),
+                }
+            }
+            Mirroring::Vertical => {
+                match addr {
+                    0x2000..=0x23FF => addr - 0x2000, // NT0
+                    0x2400..=0x27FF => addr - 0x2400, // NT1
+                    0x2800..=0x2BFF => addr - 0x2800, // NT0 again
+                    0x2C00..=0x2FFF => addr - 0x2C00, // NT1 again
+                    _ => panic!("Invalid range"),
+                }
+            }
+        }
     }
 
     pub fn cpu_read(&mut self, address: u16) -> Option<u8> {
@@ -130,7 +154,14 @@ impl PPU {
             }
             0x2007 => {
                 let addr = self.v;
-                self.vram[(addr - 0x2000) as usize % 2048] = value;
+                if addr >= 0x2000 && addr <= 0x3EFF {
+                    let mapped_addr = self.get_nametable_addr(addr);
+                    self.vram[mapped_addr as usize] = value;
+                } else if addr >= 0x3F00 && addr <= 0x3FFF {
+                    // self.vram[addr as usize] = value;
+                }
+                {}
+
                 self.v = self.v.wrapping_add(self.get_incr());
             }
             0x4014 => self.oam_dma = value,

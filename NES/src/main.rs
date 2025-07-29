@@ -46,27 +46,11 @@ fn main() -> Result<(), Error> {
         line += 1;
     }
     
-   // for y in 0..240{
-   //     for x in 0..256{
-   //        let tile_x = x / 8;
-   //        let tile_y = y / 8;
-   //        let tile_idx =  
-   //        print!("{}.{} ", tile_x, tile_y);
-   //        dbg!();
-   //     }
-   //     println!();
-   // }         
-
     println!("---------------------------");
     let mut framebuffer: [u32; 240*256] = [0; 240*256];
     for y in 0..(240/8){
         for x in 0..(256/8){
-           let tile_idx = (x + y * (256/8));
-           let addr = ppu.borrow().get_nametable_addr(0x2000 + tile_idx);
-           let tile_id = ppu.borrow().vram[addr as usize];
-           let offset:usize = ((x * 8) + (y * 8) * 256).into();
-           display_sprite_from_idx(tile_id.into(), &background, offset, &mut framebuffer);
-           //print!("{} ", tile_id);
+           render_sprite(&tile, offset as usize, &mut framebuffer);
         }
         println!();
     }         
@@ -81,17 +65,15 @@ fn main() -> Result<(), Error> {
     Ok(())
 }
 
-fn display_sprite_from_idx(tile_id: usize, planes: &[u8], offset:usize, framebuffer:&mut [u32; 240*256]) {
+fn render_sprite(planes: &[u8], offset:usize, framebuffer:&mut [u32; 240*256]) {
     for row in 0..8 {
-        let base = tile_id * 16;
-        let plane0 = planes[base + row];
-        let plane1 = planes[base + row + 8] ;
+        let plane0 = planes[row];
+        let plane1 = planes[row + 8] ;
 
         for bit in 0..8 {
             let hi = plane0 >> (7 - bit) & 1;
             let lo = plane1 >> (7 - bit) & 1;
             let color_index = (hi << 1) | lo;
-            framebuffer[offset + row * 256 + bit] = color_hex_value_from_index(color_index as usize);
         }
     }
 }
@@ -126,15 +108,15 @@ fn color_from_index(index: u8) -> &'static str {
 
 fn color_hex_value_from_index(index: usize) -> u32 {
     match index {
-        0 => 0x000000, // Black
-        1 => 0x0000FF, // Blue
-        2 => 0x00FF00, // Green
-        3 => 0xFF00FF, // Magenta
-        4 => 0x00FFFF, // Cyan
-        5 => 0xFF5555, // Light Red
-        6 => 0xCCCCCC, // Light Grey
-        7 => 0x333333, // Dark Grey
-        _ => 0x000000, // Default Black
+        0 => 0x545454, // Dark gray (background-like)
+        1 => 0x0018D8, // Deep blue
+        2 => 0x38A800, // NES green
+        3 => 0xD82800, // Bright red
+        4 => 0xFC9838, // Orange
+        5 => 0xFCFCFC, // White
+        6 => 0x7C7C7C, // Medium gray
+        7 => 0xB8B8F8, // Light blue
+        _ => 0x000000, // Fallback
     }
 }
 

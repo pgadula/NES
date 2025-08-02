@@ -29,4 +29,9 @@ node_modules
 .DS_Store
 =======
 /target
+<<<<<<< HEAD
 >>>>>>> 404c611 (init)
+=======
+/resources
+*.ppm
+>>>>>>> a008cea (fixing bugs in ppu in progress)

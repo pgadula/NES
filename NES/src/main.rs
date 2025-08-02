@@ -1,33 +1,57 @@
+use std::fs::File;
+use std::io::Read;
 use std::{cell::RefCell, io::Error, path::Path, rc::Rc};
 
-use m6502::{bus::MainBus, cartridge::Cartridge, helpers::hex_dump, ppu::PPU, helpers::ppm};
+use m6502::{bus::MainBus, cartridge::Cartridge, helpers::hex_dump, helpers::ppm, ppu::PPU};
+
+fn load_pallete(file_path: &str) -> Result<[u32; 64], Error> {
+    let file: Vec<u8> = std::fs::read(file_path)?;
+    let mut palette: [u32; 64] = [0; 64];
+    hex_dump(&file);
+    for (idx, triple) in file.chunks(3).enumerate() {
+        if idx == 64 {
+            break;
+        }
+        let mut color: u32 = 0;
+
+        color |= (triple[0] as u32) << 16;
+        color |= (triple[1] as u32) << 8;
+        color |= (triple[2] as u32) << 0;
+        println!("{idx}");
+        print!("{:06x} ", color);
+        palette[idx as usize] = color;
+    }
+    Ok(palette)
+}
 
 fn main() -> Result<(), Error> {
     let cartridge: Rc<RefCell<Cartridge>> = Rc::new(RefCell::new(Cartridge::load_rom(Path::new(
-        "resources/nestest.nes",
+        "resources/dk.nes",
     ))?));
+    let nes_palette = load_pallete("resources/ntscpalette.pal").unwrap();
     let ppu = Rc::new(RefCell::new(PPU::new(cartridge.clone())));
     let mut main_bus = MainBus::new(ppu.clone());
-    println!("{:?}",cartridge.borrow().mirroring);
+    println!("{:?}", cartridge.borrow().mirroring);
     main_bus.load_cartridge(cartridge.clone());
     let lo = main_bus.read(0xFFFC);
     let hi = main_bus.read(0xFFFD);
     let mut cpu = m6502::cpu::Mos6502::new(main_bus);
     cpu.pc = ((hi as u16) << 8) | (lo as u16);
-    let background = cartridge.clone().borrow_mut().backgrounds().to_vec();
+    let background = cartridge.clone().borrow_mut().chr_rom_data().to_vec();
     for planes in background.chunks(16) {
         display_sprite(planes);
         println!()
     }
     hex_dump(&cartridge.borrow().prg_rom_data()[0..128]);
-    println!();
+
+    println!("Program has started");
     let mut running = true;
     let mut line: u64 = 0;
     while running {
         match cpu.fetch() {
             Ok(instr) => {
                 cpu.execute(instr);
-            },
+            }
             Err(_) => {
                 running = false;
             }
@@ -40,40 +64,95 @@ fn main() -> Result<(), Error> {
             panic!("VALUE: {}", ppu.borrow().get_incr())
         }
         if ppu.borrow().scanline == 241 {}
-        if line == 59999888 {
+        if line == 1590098 {
             running = false;
         }
         line += 1;
     }
-    
-    println!("---------------------------");
-    let mut framebuffer: [u32; 240*256] = [0; 240*256];
-    for y in 0..(240/8){
-        for x in 0..(256/8){
-           render_sprite(&tile, offset as usize, &mut framebuffer);
+    println!("Program stopped!");
+
+    let palette = ppu.borrow().palette;
+    hex_dump(&palette);
+
+    let mut palette_buffer: [u32; 32 * 32] = [0; 32 * 32];
+    for y in 0..32 {
+        for x in 0..32 {
+            let idx = y * 32 + x;
+            let color_idx = palette[idx % 32];
+            let hex = nes_palette[color_idx as usize % 64];
+            palette_buffer[idx] = hex;
+            if y == 0 {
+                print!("{:02} ", color_idx);
+            }
+        }
+    }
+
+    println!("------------------------------------\n");
+    println!("---------generating palette---------\n");
+    ppm("palette.ppm", 32, 32, &palette_buffer.to_vec());
+
+    println!("----------------------------------------");
+    println!("---------generating framebuffer---------");
+    let mut framebuffer: [u32; 240 * 256] = [0; 240 * 256];
+    for y in 0..(240 / 8) {
+        for x in 0..(256 / 8) {
+            let nametable_idx = y * (256 / 8) + x;
+            let vram_addr = ppu.borrow().get_nametable_addr(nametable_idx + 0x2000) as usize;
+            let tile_id = ppu.borrow().vram[vram_addr] as usize * 16;
+            let c = cartridge.borrow();
+            let tile = &c.chr_rom_data()[tile_id..tile_id + 16];
+            let offset = (x * 8) + (y * 8 * 256);
+
+            render_sprite(
+                &tile,
+                offset as usize,
+                &mut framebuffer,
+                &ppu.borrow(),
+                &nes_palette,
+            );
         }
         println!();
-    }         
+    }
 
-    ppm("frame.ppm", 256, 240, framebuffer.to_vec());
+    for y in 0..(240 / 8) {
+        for x in 0..(256 / 8) {
+            let nametable_idx = y * (256 / 8) + x;
+            let vram_addr = ppu.borrow().get_nametable_addr(nametable_idx + 0x2000) as usize;
+            let tile_id = ppu.borrow().get_nametable(0)[(nametable_idx) as usize] as usize;
+            let c = cartridge.borrow();
+            let tile = &c.chr_rom_data()[tile_id..tile_id + 16];
+            let offset = (x * 8) + (y * 8 * 256);
+            let color_code = ansi_color((tile_id) as u8); 
+            print!("{}{:02x}.{}", color_code, tile_id, reset_color());
+        }
+        println!();
+    }
 
-    //    print_stable_colored_hex(&ppu.borrow().vram[0..1024 - 64]);
-    //    println!();
-    //    print_stable_colored_hex(&ppu.borrow().vram[1024..]);
-    //    println!();
-    //    print_stable_colored_hex(&ppu.borrow().vram[1024 - 64..(1024 - 64) + 64]);
+    hex_dump(&ppu.borrow().get_nametable(0));
+    // ppu.borrow_mut().generate_framebuffer(&nes_palette);
+    ppm("frame-ppu.ppm", 256, 240, &ppu.borrow().framebuffer.to_vec());
+    ppm("frame2.ppm", 256, 240, &framebuffer.to_vec());
     Ok(())
 }
-
-fn render_sprite(planes: &[u8], offset:usize, framebuffer:&mut [u32; 240*256]) {
+fn render_sprite(
+    planes: &[u8],
+    offset: usize,
+    framebuffer: &mut [u32; 240 * 256],
+    ppu: &PPU,
+    nes_palette: &[u32; 64],
+) {
     for row in 0..8 {
         let plane0 = planes[row];
-        let plane1 = planes[row + 8] ;
+        let plane1 = planes[row + 8];
 
         for bit in 0..8 {
             let hi = plane0 >> (7 - bit) & 1;
             let lo = plane1 >> (7 - bit) & 1;
-            let color_index = (hi << 1) | lo;
+            let palette_index = (hi << 1) | lo;
+            let color_index = ppu.palette[palette_index as usize];
+
+            let fb = (row * 256) + offset + bit;
+            framebuffer[fb] = nes_palette[color_index as usize % 64];
         }
     }
 }
@@ -94,15 +173,15 @@ fn display_sprite(planes: &[u8]) {
 
 fn color_from_index(index: u8) -> &'static str {
     match index {
-        0 => "\x1b[40m  ",  // Black (Background)
-        1 => "\x1b[44m  ",  // Blue (Sky/Water)
-        2 => "\x1b[42m  ",  // Green (Grass/Environment)
-        3 => "\x1b[45m  ",  // Magenta (Highlights or UI elements)
-        4 => "\x1b[46m  ",  // Cyan (Tech/Metal)
-        5 => "\x1b[101m  ", // Light Red (Character accents)
-        6 => "\x1b[47m  ",  // Light Grey (Neutral background)
-        7 => "\x1b[100m  ", // Dark Grey (Shadow/Depth)
-        _ => "\x1b[0m  ",   // Reset
+        0 => "\x1b[40m",  // Black (Background)
+        1 => "\x1b[44m",  // Blue (Sky/Water)
+        2 => "\x1b[42m",  // Green (Grass/Environment)
+        3 => "\x1b[45m",  // Magenta (Highlights or UI elements)
+        4 => "\x1b[46m",  // Cyan (Tech/Metal)
+        5 => "\x1b[101m", // Light Red (Character accents)
+        6 => "\x1b[47m",  // Light Grey (Neutral background)
+        7 => "\x1b[100m", // Dark Grey (Shadow/Depth)
+        _ => "\x1b[0m",   // Reset
     }
 }
 
@@ -143,4 +222,12 @@ fn print_stable_colored_hex(data: &[u8]) {
         }
     }
     println!();
+}
+
+fn ansi_color(n: u8) -> String {
+    format!("\x1b[38;5;{}m", n % 32)
+}
+
+fn reset_color() -> &'static str {
+    "\x1b[0m"
 }

@@ -1,4 +1,27 @@
 use crate::{cpu::{self}, opcodes::{resolve_opcode, AddressingMode}};
+use std::fs::File;
+use std::io;
+use std::io::{BufWriter, Write};
+
+
+pub fn ppm(file_name: &str, width: u32, height: u32, bytes: &Vec<u32>) -> io::Result<()> {
+    let mut file = File::create(file_name)?;
+    let data = width * height * 3; //three chanells per color
+    let header = format!("P6\n{} {}\n 255", width, height);
+    let mut writer = BufWriter::with_capacity((data + (header.len() as u32)) as usize, file);
+    println!("preallocate buffer with size: {}", writer.capacity());
+     writeln!(writer, "{}", header);
+    for byte in bytes{
+        let r = ((byte >> 16) & 0xFF) as u8;
+        let g = ((byte >> 8 ) & 0xFF) as u8;
+        let b = ((byte >> 0 ) & 0xFF) as u8;
+        writer.write_all(&[r,g,b]);
+    }
+
+    writer.flush();
+    println!("File {} has been save", file_name);
+    Ok(())
+}
 
 pub fn hex_dump(buff: &[u8]) {
     for (i, chunk) in buff.chunks(16).enumerate() {
@@ -29,7 +52,6 @@ pub struct CpuState {
    pub ppu: (u32, u32),
    pub cyc: u32,
 }
-
 
 pub fn disassembler(cpu: &mut cpu::Mos6502, n_instruction:u16) {
     let mut i: u16 = 0;

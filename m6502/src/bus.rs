@@ -35,6 +35,7 @@ impl MainBus {
                 return data;
             }
         }
+
         match address {
             0x0000..=0x1FFF => {
                 // println!("\x1b[32m[INFO] reading from CPU\x1b[0m");
@@ -49,7 +50,7 @@ impl MainBus {
                 value
             }
             0x4000..=0xFFFF => {
-                eprintln!("reading from unknown device {:04x}", addr);
+                //eprintln!("reading from unknown device {:04x}", addr);
                 return 0;
             }
         }
@@ -73,10 +74,10 @@ impl MainBus {
                 self.cpu_ram[addr & 0x07FF] = value;
             }
             0x2000..=0x3FFF => {
-                println!(
-                    "\x1b[32m[INFO] Writing to PPU RAM addr:{:04X} value {}\x1b[0m",
-                    addr, value
-                );
+               // println!(
+               //     "\x1b[32m[INFO] Writing to PPU RAM addr:{:04X} value {}\x1b[0m",
+               //     addr, value
+               // );
                 if addr > 0x200f {
                     panic!("Writing to ppu");
                 }
@@ -84,10 +85,10 @@ impl MainBus {
                 self.ppu.borrow_mut().cpu_write(addr as u16, value);
             }
             0x4000..=0x4017 => {
-                println!(
-                    "\x1b[32m[INFO] writing to APU addr:{:04X} value {}\x1b[0m",
-                    addr, value
-                );
+               // println!(
+               //     "\x1b[32m[INFO] writing to APU addr:{:04X} value {}\x1b[0m",
+               //     addr, value
+               // );
             }
             _ => {
                 eprintln!("Unahandled address {:04X}", addr);

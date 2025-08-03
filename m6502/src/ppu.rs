@@ -27,6 +27,7 @@ pub struct PPU {
     v: u16,  //internal register for vram addressing
 
     pub framebuffer: [u32; 256 * 240],
+    pub internal_palette: [u32; 64]
 }
 
 impl PPU {
@@ -51,8 +52,67 @@ impl PPU {
             t: 0,
             v: 0,
             framebuffer: [0; 256 * 240],
+
+            internal_palette: [0; 64]
         };
     }
+    
+    pub fn set_palette(&mut self, palette: &[u32; 64]){
+        self.internal_palette = palette.clone();
+    }
+
+    pub fn render(&mut self){
+        let pattern_base = if self.ppu_crtl & 0b0001_0000 != 0 {
+            0x1000
+        } else {
+            0x0000
+        };
+
+
+        for y in 0..(240 / 8) {
+            for x in 0..(256 / 8) {
+                let nametable_idx = y * (256 / 8) + x;
+                let vram_addr = self.get_nametable_addr(nametable_idx + 0x2000) as usize;
+                let tile_id = self.vram[vram_addr] as usize;
+
+                let pattern_addr: usize = pattern_base + tile_id * 16;
+
+                let tile: [u8; 16] = {
+                    let c = self.cartridge.borrow();
+                    let data = c.chr_rom_data(); 
+                    let mut buf = [0u8; 16];
+                    buf.copy_from_slice(&data[pattern_addr..pattern_addr + 16]);
+                    buf
+                };
+                let offset = (x * 8) + (y * 8 * 256);
+                self.render_sprite(&tile, offset as usize);
+            }
+        }
+
+    }
+    
+     fn render_sprite(
+        &mut self,
+        planes: &[u8],
+        offset: usize,
+    ) {
+        for row in 0..8 {
+            let plane0 = planes[row];
+            let plane1 = planes[row + 8];
+
+            for bit in 0..8 {
+                let hi = plane0 >> (7 - bit) & 1;
+                let lo = plane1 >> (7 - bit) & 1;
+                let palette_index = (hi << 1) | lo;
+                let color_index = self.palette[palette_index as usize];
+
+                let fb = (row * 256) + offset + bit;
+                self.framebuffer[fb] = self.internal_palette[color_index as usize % 64];
+            }
+        }
+    }
+
+
     pub fn read_chr_rom(&self, address: u16) -> u8 {
         self.cartridge.borrow().chr_rom_data()[address as usize]
     }
@@ -73,7 +133,7 @@ impl PPU {
                     0x2400..=0x27FF => addr - 0x2400, // NT1
                     0x2800..=0x2BFF => addr - 0x2000, // mirror of NT0
                     0x2C00..=0x2FFF => addr - 0x2400, // mirror of NT1
-                    _ => panic!("Invalid range {addr}")
+                    _ => panic!("Invalid range {addr}"),
                 }
             }
             Mirroring::Vertical => {
@@ -125,9 +185,7 @@ impl PPU {
                 //    eprintln!("Cannot read from addr {:04x}", addr);
                 None
             }
-            0x2007 => {
-                Some(self.ppu_data)
-            },
+            0x2007 => Some(self.ppu_data),
             0x4014 => {
                 eprintln!("Cannot read from addr {:04x}", addr);
                 None
@@ -198,7 +256,6 @@ impl PPU {
                 self.ppu_status |= 0x80
             }
             if self.scanline >= 262 {
-
                 self.scanline = 0;
                 self.ppu_status &= !0x80
             }
@@ -225,63 +282,4 @@ impl PPU {
         println!("  Palette[0..8]: {:?}", &self.palette[0..8]);
     }
 
-    pub fn generate_framebuffer(&mut self, nes_palette_color: &[u32; 64]) {
-    for tile_y in 0..30 {
-        for tile_x in 0..32 {
-            // Compute nametable address (first nametable, 0x2000–0x23BF)
-            let nametable_index = 0x2000 + tile_y * 32 + tile_x;
-            // Get tile ID directly from nametable
-            let tile_id = self.get_nametable_addr(nametable_index);
-            // Pattern table address (16 bytes per tile)
-            let pattern_addr = (tile_id as u16) * 16;
-
-            // Attribute table lookup (0x23C0–0x23FF for first nametable)
-            let attr_index = 0x23C0 + (tile_y / 4) * 8 + (tile_x / 4);
-            let attr_addr = self.get_nametable_addr(attr_index);
-            let attr_byte = self.vram[attr_addr as usize];
-
-            // Determine which 2x2 tile quadrant we're in (0-3)
-            let quadrant = ((tile_y % 4) / 2) * 2 + ((tile_x % 4) / 2);
-
-            // Extract palette bits (2 bits for this quadrant)
-            let palette_bits = match quadrant {
-                0 => attr_byte & 0b00000011,
-                1 => (attr_byte >> 2) & 0b00000011,
-                2 => (attr_byte >> 4) & 0b00000011,
-                3 => (attr_byte >> 6) & 0b00000011,
-                _ => 0,
-            };
-
-            // Each palette is 4 colors, skip universal background color
-            let palette_base = 1 + (palette_bits * 4);
-
-            // Draw 8x8 tile
-            for row in 0..8 {
-                let lo = self.read_chr_rom(pattern_addr + row);
-                let hi = self.read_chr_rom(pattern_addr + row + 8);
-
-                for col in 0..8 {
-                    let bit = 7 - col;
-                    let pixel = ((lo >> bit) & 1) | (((hi >> bit) & 1) << 1);
-
-                    // Pixel 0 is always universal background color
-                    let palette_idx = if pixel == 0 {
-                        self.palette[0]
-                    } else {
-                        self.palette[(palette_base + pixel) as usize]
-                    };
-
-                    let screen_x = tile_x * 8 + col;
-                    let screen_y = tile_y * 8 + row;
-
-                    if screen_x < 256 && screen_y < 240 {
-                        self.framebuffer[(screen_y * 256 + screen_x) as usize] =
-                            nes_palette_color[palette_idx as usize % 64];
-                    }
-                }
-            }
-        }
-    }
 }
-
-  }

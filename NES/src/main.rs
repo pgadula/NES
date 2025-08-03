@@ -26,7 +26,7 @@ fn load_pallete(file_path: &str) -> Result<[u32; 64], Error> {
 
 fn main() -> Result<(), Error> {
     let cartridge: Rc<RefCell<Cartridge>> = Rc::new(RefCell::new(Cartridge::load_rom(Path::new(
-        "resources/dk.nes",
+        "resources/sm.nes",
     ))?));
     let nes_palette = load_pallete("resources/ntscpalette.pal").unwrap();
     let ppu = Rc::new(RefCell::new(PPU::new(cartridge.clone())));
@@ -64,7 +64,7 @@ fn main() -> Result<(), Error> {
             panic!("VALUE: {}", ppu.borrow().get_incr())
         }
         if ppu.borrow().scanline == 241 {}
-        if line == 1590098 {
+        if line == 15905098 {
             running = false;
         }
         line += 1;
@@ -94,24 +94,27 @@ fn main() -> Result<(), Error> {
     println!("----------------------------------------");
     println!("---------generating framebuffer---------");
     let mut framebuffer: [u32; 240 * 256] = [0; 240 * 256];
+    let ppu_ctrl = ppu.borrow().ppu_crtl;
+    let pattern_base = if ppu_ctrl & 0b0001_0000 != 0 {
+        0x1000
+    } else {
+        0x0000
+    };
+
     for y in 0..(240 / 8) {
         for x in 0..(256 / 8) {
             let nametable_idx = y * (256 / 8) + x;
             let vram_addr = ppu.borrow().get_nametable_addr(nametable_idx + 0x2000) as usize;
-            let tile_id = ppu.borrow().vram[vram_addr] as usize * 16;
+            let tile_id = ppu.borrow().vram[vram_addr] as usize;
+
             let c = cartridge.borrow();
-            let tile = &c.chr_rom_data()[tile_id..tile_id + 16];
+            let pattern_addr: usize = pattern_base + tile_id * 16;
+
+            let tile = &c.chr_rom_data()[pattern_addr..pattern_addr + 16];
             let offset = (x * 8) + (y * 8 * 256);
 
-            render_sprite(
-                &tile,
-                offset as usize,
-                &mut framebuffer,
-                &ppu.borrow(),
-                &nes_palette,
-            );
+            render_sprite(&tile, offset as usize, &mut framebuffer, &ppu.borrow(), &nes_palette);
         }
-        println!();
     }
 
     for y in 0..(240 / 8) {
@@ -122,18 +125,25 @@ fn main() -> Result<(), Error> {
             let c = cartridge.borrow();
             let tile = &c.chr_rom_data()[tile_id..tile_id + 16];
             let offset = (x * 8) + (y * 8 * 256);
-            let color_code = ansi_color((tile_id) as u8); 
+            let color_code = ansi_color((tile_id) as u8);
             print!("{}{:02x}.{}", color_code, tile_id, reset_color());
         }
         println!();
     }
-
-    hex_dump(&ppu.borrow().get_nametable(0));
-    // ppu.borrow_mut().generate_framebuffer(&nes_palette);
-    ppm("frame-ppu.ppm", 256, 240, &ppu.borrow().framebuffer.to_vec());
+    
+    ppu.borrow().dump();
+    ppu.borrow_mut().set_palette(&nes_palette);
+    ppu.borrow_mut().render();
+    ppm(
+        "frame-ppu.ppm",
+        256,
+        240,
+        &ppu.borrow().framebuffer.to_vec(),
+    );
     ppm("frame2.ppm", 256, 240, &framebuffer.to_vec());
     Ok(())
 }
+
 fn render_sprite(
     planes: &[u8],
     offset: usize,

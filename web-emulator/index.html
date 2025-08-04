@@ -4,64 +4,19 @@
 <head>
   <meta charset="utf-8" />
   <title>hello-wasm example</title>
+  <script type="module" src="src/index.ts"></script>
 </head>
 
 <body>
-  <input type="file" id="fileInput">
-  <canvas id="screen" width="256" height="240"></canvas>
+  <main>
+    <input type="file" id="fileInput">
+    <canvas id="screen" width="256" height="240"></canvas>
+    <div id="cpu">
+      <ul id="cpu_registers">
 
-  <script type="module">
-    import init, { start_emu, WebEmu } from "./pkg/web_emulator.js";
-
-    const WIDTH = 256;
-    const HEIGHT = 240;
-    const screen = document.getElementById('screen');
-    const ctx = screen.getContext('2d');
-    const imageData = ctx.createImageData(WIDTH, HEIGHT); // RGBA buffer
-    let emu = null;
-    let running = false;
-
-    // Initialize WASM module
-    init().then(() => {
-      requestAnimationFrame(render);
-    });
-
-    // Main render loop
-    function render(ms) {
-      if (running && emu) {
-        const STEPS_PER_FRAME = 20000;
-        for (let i = 0; i < STEPS_PER_FRAME; i++) {
-          emu.step();
-        }
-
-        if (!window.lastRenderTime || ms - window.lastRenderTime >= 16) {
-          window.lastRenderTime = ms;
-
-          const framebuffer = emu.getFramebuffer();
-          const buf = new Uint32Array(imageData.data.buffer);
-          buf.set(framebuffer);
-          ctx.putImageData(imageData, 0, 0);
-        }
-      }
-      requestAnimationFrame(render);
-    }
-
-    // Handle file loading
-    document.getElementById('fileInput').addEventListener('change', async (event) => {
-      const file = event.target.files[0];
-      if (!file) return;
-
-      const bytes = await file.arrayBuffer();
-
-      if (typeof WebEmu.loadCartridge === 'function') {
-        emu = WebEmu.loadCartridge(new Uint8Array(bytes)); // pass Uint8Array
-        running = true; // start emulator
-        console.log("Cartridge loaded and emulator running!");
-      } else {
-        console.error("loadCartridge is not defined yet.");
-      }
-    });
-  </script>
+      </ul>
+    </div>
+  </main>
 </body>
 
 </html>

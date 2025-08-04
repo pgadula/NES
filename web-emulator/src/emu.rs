@@ -1,49 +1,7 @@
-use m6502::cartridge;
 use m6502::cpu::Mos6502;
-use m6502::{bus::MainBus, cartridge::Cartridge, helpers::hex_dump, helpers::ppm, ppu::PPU};
-use std::fs::File;
-use std::io::Read;
-use std::{cell::RefCell, io::Error, path::Path, rc::Rc};
+use m6502::{bus::MainBus, cartridge::Cartridge, ppu::PPU};
+use std::{cell::RefCell, rc::Rc};
 use wasm_bindgen::prelude::*;
-
-#[wasm_bindgen]
-pub fn start_emu() {
-
-    //   let cartridge: Rc<RefCell<Cartridge>> = Rc::new(RefCell::new(Cartridge::load_rom(Path::new(
-    //     "resources/sm.nes",
-    // )).unwrap()));
-    // let nes_palette:[u32; 32] = [0; 32];
-    // let ppu = Rc::new(RefCell::new(PPU::new(cartridge.clone())));
-    // let mut main_bus = MainBus::new(ppu.clone());
-    // // println!("{:?}", cartridge.borrow().mirroring);
-    // // main_bus.load_cartridge(cartridge.clone());
-    // // let lo = main_bus.read(0xFFFC);
-    // // let hi = main_bus.read(0xFFFD);
-    // let mut cpu = m6502::cpu::Mos6502::new(main_bus);
-    // // cpu.pc = ((hi as u16) << 8) | (lo as u16);
-    // // let background = cartridge.clone().borrow_mut().chr_rom_data().to_vec();
-
-    // let mut running = true;
-    // let mut line: u64 = 0;
-    // while running {
-    //     match cpu.fetch() {
-    //         Ok(instr) => {
-    //             cpu.execute(instr);
-    //         }
-    //         Err(_) => {
-    //             running = false;
-    //         }
-    //     }
-    //     for _ in 0..(3) {
-    //         let mut nmi_closure = || cpu.nmi();
-    //         ppu.borrow_mut().tick(Some(&mut nmi_closure));
-    //     }
-    //     if line == 15905098 {
-    //         running = false;
-    //     }
-    //     line += 1;
-    // }
-}
 
 #[wasm_bindgen]
 pub struct WebEmu {
@@ -69,7 +27,7 @@ impl WebEmu {
         let cpu_rc = Rc::new(RefCell::new(Mos6502::new(bus_rc.clone())));
         let lo = bus_rc.borrow_mut().read(0xFFFC);
         let hi = bus_rc.borrow_mut().read(0xFFFD);
-        
+
         cpu_rc.borrow_mut().pc = ((hi as u16) << 8) | (lo as u16);
         Ok(WebEmu {
             ppu: ppu_rc,
@@ -85,8 +43,8 @@ impl WebEmu {
             Ok(instr) => {
                 cc.execute(instr);
             }
-            Err(_) => {
-                // Handle the error or simply do nothing
+            Err(err) => {
+                panic!("{:?}", err);
             }
         }
         for _ in 0..(3) {
@@ -108,10 +66,17 @@ impl WebEmu {
     }
 
     #[wasm_bindgen(js_name = "cpuRegisters")]
-    pub fn cpu_registers(&mut self) -> Vec<u32> {
+    pub fn cpu_registers(&mut self) -> Vec<u16> {
         let cpu = self.cpu.borrow();
-
-        return vec![cpu.a as u32, cpu.pc as u32];
+        let registers = vec![
+            cpu.pc,
+            cpu.p.bits() as u16,
+            cpu.a as u16,
+            cpu.x as u16,
+            cpu.y as u16,
+            cpu.sp as u16,
+        ];
+        return registers;
     }
 
     #[wasm_bindgen(js_name = "chrRom")]

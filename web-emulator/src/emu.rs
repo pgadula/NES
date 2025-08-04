@@ -67,7 +67,10 @@ impl WebEmu {
             ppu: ppu_rc.clone(),
         }));
         let cpu_rc = Rc::new(RefCell::new(Mos6502::new(bus_rc.clone())));
-
+        let lo = bus_rc.borrow_mut().read(0xFFFC);
+        let hi = bus_rc.borrow_mut().read(0xFFFD);
+        
+        cpu_rc.borrow_mut().pc = ((hi as u16) << 8) | (lo as u16);
         Ok(WebEmu {
             ppu: ppu_rc,
             bus: bus_rc,
@@ -77,10 +80,7 @@ impl WebEmu {
 
     #[wasm_bindgen(js_name = "step")]
     pub fn step(&mut self) {
-        let lo = self.bus.borrow_mut().read(0xFFFC);
-        let hi = self.bus.borrow_mut().read(0xFFFD);
         let mut cc = self.cpu.borrow_mut();
-        cc.pc = ((hi as u16) << 8) | (lo as u16);
         match cc.fetch() {
             Ok(instr) => {
                 cc.execute(instr);
@@ -110,7 +110,21 @@ impl WebEmu {
     #[wasm_bindgen(js_name = "cpuRegisters")]
     pub fn cpu_registers(&mut self) -> Vec<u32> {
         let cpu = self.cpu.borrow();
-        
-        return vec![cpu.a as u32, cpu.pc as u32]
+
+        return vec![cpu.a as u32, cpu.pc as u32];
+    }
+
+    #[wasm_bindgen(js_name = "chrRom")]
+    pub fn chr_rom_data(&mut self) -> Vec<u8> {
+        let binding = self.ppu.borrow();
+        let c = binding.cartridge.borrow();
+
+        return c.chr_rom_data().to_vec();
+    }
+
+    #[wasm_bindgen(js_name = "nametable")]
+    pub fn nametable(&mut self) -> Vec<u8> {
+        let binding = self.ppu.borrow();
+        return binding.get_nametable(1).to_vec();
     }
 }

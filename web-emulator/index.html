@@ -12,57 +12,55 @@
 
   <script type="module">
     import init, { start_emu, WebEmu } from "./pkg/web_emulator.js";
-    let emu;
+
     const WIDTH = 256;
     const HEIGHT = 240;
     const screen = document.getElementById('screen');
     const ctx = screen.getContext('2d');
-    let running = true;
     const imageData = ctx.createImageData(WIDTH, HEIGHT); // RGBA buffer
-    // Load the wasm module and expose load_cartridge globally
+    let emu = null;
+    let running = false;
+
+    // Initialize WASM module
     init().then(() => {
-      requestAnimationFrame(start_emu);
+      requestAnimationFrame(render);
     });
 
+    // Main render loop
     function render(ms) {
-      if (window.emu) {
-        if (!window.lastRenderTime || ms - window.lastRenderTime >= 30) {
-          window.lastRenderTime = ms;
-          const framebuffer = window.emu.getFramebuffer(); // Vec<u32> -> Uint32Array
-          const buf = new Uint32Array(imageData.data.buffer); // reinterpret as RGBA
-          buf.set(framebuffer); // copy pixel data
-          console.log(window.emu.cpuRegisters())
+      if (running && emu) {
+        const STEPS_PER_FRAME = 20000;
+        for (let i = 0; i < STEPS_PER_FRAME; i++) {
+          emu.step();
+        }
 
+        if (!window.lastRenderTime || ms - window.lastRenderTime >= 16) {
+          window.lastRenderTime = ms;
+
+          const framebuffer = emu.getFramebuffer();
+          const buf = new Uint32Array(imageData.data.buffer);
+          buf.set(framebuffer);
           ctx.putImageData(imageData, 0, 0);
         }
       }
       requestAnimationFrame(render);
     }
+
+    // Handle file loading
     document.getElementById('fileInput').addEventListener('change', async (event) => {
       const file = event.target.files[0];
-      if (file) {
-        const bytes = await file.arrayBuffer();
-        console.log(bytes);
+      if (!file) return;
 
-        if (typeof WebEmu.loadCartridge == 'function') {
-          const emu = WebEmu.loadCartridge(new Uint8Array(bytes)); // pass Uint8Array, not ArrayBuffer
-          window.emu = emu;
-          console.log(window.emu.ppuPalette())
+      const bytes = await file.arrayBuffer();
 
-          let line = 0;
-          while (running && line < 10_000_000) {
-
-            window.emu.step();
-            ++line;
-          }
-          console.log("Done!");
-        } else {
-          console.error("load_cartridge is not defined yet.");
-        }
+      if (typeof WebEmu.loadCartridge === 'function') {
+        emu = WebEmu.loadCartridge(new Uint8Array(bytes)); // pass Uint8Array
+        running = true; // start emulator
+        console.log("Cartridge loaded and emulator running!");
+      } else {
+        console.error("loadCartridge is not defined yet.");
       }
     });
-    render();
-
   </script>
 </body>
 

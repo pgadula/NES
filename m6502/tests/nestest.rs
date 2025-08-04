@@ -27,12 +27,12 @@ mod tests {
             Cartridge::load_rom(Path::new("resources/nestest.nes")).unwrap(),
         ));
         let ppu: PPU = PPU::new(cartridge.clone());
-        let mut bus = MainBus::new(Rc::new(RefCell::new(ppu)));
-        bus.load_cartridge(cartridge.clone());
+        let mut bus = Rc::new(RefCell::new(MainBus::new(Rc::new(RefCell::new(ppu)))));
+        bus.borrow_mut().load_cartridge(cartridge.clone());
         let mut logs = read_file_and_parse("resources/nestest.log")
             .unwrap()
             .into_iter();
-        let mut cpu = Mos6502::new(bus);
+        let mut cpu = Mos6502::new(bus.clone());
         cpu.pc = 0xC000;
         let mut n_step = 8991;
         let mut running = true;
@@ -56,8 +56,8 @@ mod tests {
                     cpu.execute(instruction);
                     n_step = n_step - 1;
 
-                    if cpu.bus.read(0x6000) != 0 {
-                        panic!("nestest failed: error code = {}", cpu.bus.read(0x6000));
+                    if cpu.bus.borrow_mut().read(0x6000) != 0 {
+                        panic!("nestest failed: error code = {}", cpu.bus.borrow_mut().read(0x6000));
                     }
                     running = if instruction.0 == Mnemonic::BRK {
                         false

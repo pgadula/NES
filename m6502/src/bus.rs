@@ -78,9 +78,9 @@ impl MainBus {
                //     "\x1b[32m[INFO] Writing to PPU RAM addr:{:04X} value {}\x1b[0m",
                //     addr, value
                // );
-                if addr > 0x200f {
-                    panic!("Writing to ppu");
-                }
+                // if addr > 0x200f {
+                //     panic!("Writing to ppu");
+                // }
 
                 self.ppu.borrow_mut().cpu_write(addr as u16, value);
             }

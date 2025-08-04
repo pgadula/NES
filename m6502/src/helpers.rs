@@ -57,13 +57,13 @@ pub fn disassembler(cpu: &mut cpu::Mos6502, n_instruction:u16) {
     let mut i: u16 = 0;
     while i < n_instruction {
         let addr = cpu.pc + i;
-        let opbyte = cpu.bus.read(addr);
+        let opbyte = cpu.bus.borrow_mut().read(addr);
         let (mnemonic, mode) = resolve_opcode(opbyte).unwrap();
         let operand_len = AddressingMode::get_bytes(mode) as u16;
         print!("{:?}", mnemonic);
 
         for i in 1..operand_len {
-            let byte = cpu.bus.read(cpu.pc + i + i);
+            let byte = cpu.bus.borrow_mut().read(cpu.pc + i + i);
             print!(" {:02x}", byte);
         }
         print!("\t ##{:?}", mode);

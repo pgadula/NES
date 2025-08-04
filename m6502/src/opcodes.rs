@@ -43,17 +43,17 @@ impl AddressingMode {
             ZeroPage => {
                 let zero_page_addr = cpu.inc_pc() as u16;
                 cpu.abs_addr = zero_page_addr;
-                cpu.fetched = cpu.bus.read(zero_page_addr);
+                cpu.fetched = cpu.bus.borrow_mut().read(zero_page_addr);
             }
             ZeroPageX => {
                 let zero_page_addr = cpu.inc_pc().wrapping_add(cpu.x) as u16;
                 cpu.abs_addr = zero_page_addr as u16;
-                cpu.fetched = cpu.bus.read(zero_page_addr);
+                cpu.fetched = cpu.bus.borrow_mut().read(zero_page_addr);
             }
             ZeroPageY => {
                 let zero_page_addr = cpu.inc_pc().wrapping_add(cpu.y) as u16;
                 cpu.abs_addr = zero_page_addr as u16;
-                cpu.fetched = cpu.bus.read(zero_page_addr);
+                cpu.fetched = cpu.bus.borrow_mut().read(zero_page_addr);
             }
             Relative => {
                 let value = cpu.inc_pc();
@@ -63,21 +63,21 @@ impl AddressingMode {
                 let lo = cpu.inc_pc();
                 let hh: u8 = cpu.inc_pc();
                 let addr = Mos6502::get_address_from_bytes(hh, lo);
-                cpu.fetched = cpu.bus.read(addr);
+                cpu.fetched = cpu.bus.borrow_mut().read(addr);
                 cpu.abs_addr = addr;
             }
             AbsoluteX => {
                 let lo = cpu.inc_pc();
                 let hh = cpu.inc_pc();
                 let addr = Mos6502::get_address_from_bytes(hh, lo).wrapping_add(cpu.x as u16);
-                cpu.fetched = cpu.bus.read(addr);
+                cpu.fetched = cpu.bus.borrow_mut().read(addr);
                 cpu.abs_addr = addr;
             }
             AbsoluteY => {
                 let lo = cpu.inc_pc();
                 let hh = cpu.inc_pc();
                 let addr = Mos6502::get_address_from_bytes(hh, lo).wrapping_add(cpu.y as u16);
-                cpu.fetched = cpu.bus.read(addr);
+                cpu.fetched = cpu.bus.borrow_mut().read(addr);
                 cpu.abs_addr = addr;
             }
             Indirect => {
@@ -87,18 +87,18 @@ impl AddressingMode {
                 let mut byte = cpu.inc_pc();
                 byte = byte.wrapping_add(cpu.x);
 
-                let lo = cpu.bus.read(byte as u16);
-                let hi = cpu.bus.read((byte.wrapping_add(1)) as u16 & 0x00FF);
+                let lo = cpu.bus.borrow_mut().read(byte as u16);
+                let hi = cpu.bus.borrow_mut().read((byte.wrapping_add(1)) as u16 & 0x00FF);
                 cpu.abs_addr = Mos6502::get_address_from_bytes(hi, lo);
-                cpu.fetched = cpu.bus.read(cpu.abs_addr);
+                cpu.fetched = cpu.bus.borrow_mut().read(cpu.abs_addr);
             }
             IndirectY => {
                 let addr = cpu.inc_pc() as u16;
 
-                let lo = cpu.bus.read(addr as u16);
-                let hi = cpu.bus.read((addr.wrapping_add(1)) as u16 & 0x00FF);
+                let lo = cpu.bus.borrow_mut().read(addr as u16);
+                let hi = cpu.bus.borrow_mut().read((addr.wrapping_add(1)) as u16 & 0x00FF);
                 cpu.abs_addr = Mos6502::get_address_from_bytes(hi, lo).wrapping_add(cpu.y as u16);
-                cpu.fetched = cpu.bus.read(cpu.abs_addr);
+                cpu.fetched = cpu.bus.borrow_mut().read(cpu.abs_addr);
             }
         }
     }

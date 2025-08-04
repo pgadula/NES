@@ -1,2 +1,5 @@
 node_modules
 target
+web-emulator/.DS_Store
+m6502/.DS_Store
+NES/.DS_Store

@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en-US">
+
+<head>
+  <meta charset="utf-8" />
+  <title>hello-wasm example</title>
+</head>
+
+<body>
+  <input type="file" id="fileInput">
+  <canvas id="screen" width="256" height="240"></canvas>
+
+  <script type="module">
+    import init, { start_emu, WebEmu } from "./pkg/web_emulator.js";
+    let emu;
+    const WIDTH = 256;
+    const HEIGHT = 240;
+    const screen = document.getElementById('screen');
+    const ctx = screen.getContext('2d');
+    let running = true;
+    const imageData = ctx.createImageData(WIDTH, HEIGHT); // RGBA buffer
+    // Load the wasm module and expose load_cartridge globally
+    init().then(() => {
+      requestAnimationFrame(start_emu);
+    });
+
+    function render(ms) {
+      if (window.emu) {
+        if (!window.lastRenderTime || ms - window.lastRenderTime >= 30) {
+          window.lastRenderTime = ms;
+          const framebuffer = window.emu.getFramebuffer(); // Vec<u32> -> Uint32Array
+          const buf = new Uint32Array(imageData.data.buffer); // reinterpret as RGBA
+          buf.set(framebuffer); // copy pixel data
+          console.log(window.emu.cpuRegisters())
+
+          ctx.putImageData(imageData, 0, 0);
+        }
+      }
+      requestAnimationFrame(render);
+    }
+    document.getElementById('fileInput').addEventListener('change', async (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        const bytes = await file.arrayBuffer();
+        console.log(bytes);
+
+        if (typeof WebEmu.loadCartridge == 'function') {
+          const emu = WebEmu.loadCartridge(new Uint8Array(bytes)); // pass Uint8Array, not ArrayBuffer
+          window.emu = emu;
+          console.log(window.emu.ppuPalette())
+
+          let line = 0;
+          while (running && line < 10_000_000) {
+
+            window.emu.step();
+            ++line;
+          }
+          console.log("Done!");
+        } else {
+          console.error("load_cartridge is not defined yet.");
+        }
+      }
+    });
+    render();
+
+  </script>
+</body>
+
+</html>

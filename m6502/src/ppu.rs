@@ -1,6 +1,16 @@
 use std::{cell::RefCell, rc::Rc};
 
 use crate::cartridge::{Cartridge, Mirroring};
+const FALLBACK_PALETTE: [u32; 64] = [
+    0xFF757575, 0xFF271B8F, 0xFF0000AB, 0xFF47009F, 0xFF8F0077, 0xFFA7004F, 0xFFA70000, 0xFF7F0B00,
+    0xFF432F00, 0xFF004700, 0xFF005100, 0xFF003F17, 0xFF1B3F5F, 0xFF000000, 0xFF000000, 0xFF000000,
+    0xFFBCBCBC, 0xFF0073EF, 0xFF233BEF, 0xFF8300F3, 0xFFBF00BF, 0xFFE7005B, 0xFFDB2B00, 0xFFCB4F0F,
+    0xFF8B7300, 0xFF009700, 0xFF00AB00, 0xFF00933B, 0xFF00838B, 0xFF000000, 0xFF000000, 0xFF000000,
+    0xFFFFFFFF, 0xFF3FBFFF, 0xFF5F73FF, 0xFFA78BFD, 0xFFF77BFF, 0xFFFF77B7, 0xFFFF7763, 0xFFFF9B3B,
+    0xFFF3BF3F, 0xFF83D313, 0xFF4FDF4B, 0xFF58F898, 0xFF00EBDB, 0xFF757575, 0xFF000000, 0xFF000000,
+    0xFFFFFFFF, 0xFFABE7FF, 0xFFC7D7FF, 0xFFD7CBFF, 0xFFFFC7FF, 0xFFFFC7DB, 0xFFFFBFB3, 0xFFFFDBAB,
+    0xFFFFE7A3, 0xFFE3FFA3, 0xFFABF3BF, 0xFFB3FFCF, 0xFF9FFFF3, 0xFFD7D7D7, 0xFF000000, 0xFF000000,
+];
 
 #[derive(Debug)]
 pub struct PPU {
@@ -27,7 +37,7 @@ pub struct PPU {
     v: u16,  //internal register for vram addressing
 
     pub framebuffer: [u32; 256 * 240],
-    pub internal_palette: [u32; 64]
+    pub internal_palette: [u32; 64],
 }
 
 impl PPU {
@@ -53,21 +63,20 @@ impl PPU {
             v: 0,
             framebuffer: [0; 256 * 240],
 
-            internal_palette: [0; 64]
+            internal_palette: FALLBACK_PALETTE,
         };
     }
-    
-    pub fn set_palette(&mut self, palette: &[u32; 64]){
+
+    pub fn set_palette(&mut self, palette: &[u32; 64]) {
         self.internal_palette = palette.clone();
     }
 
-    pub fn render(&mut self){
+    pub fn render(&mut self) {
         let pattern_base = if self.ppu_crtl & 0b0001_0000 != 0 {
             0x1000
         } else {
             0x0000
         };
-
 
         for y in 0..(240 / 8) {
             for x in 0..(256 / 8) {
@@ -79,7 +88,7 @@ impl PPU {
 
                 let tile: [u8; 16] = {
                     let c = self.cartridge.borrow();
-                    let data = c.chr_rom_data(); 
+                    let data = c.chr_rom_data();
                     let mut buf = [0u8; 16];
                     buf.copy_from_slice(&data[pattern_addr..pattern_addr + 16]);
                     buf
@@ -88,14 +97,9 @@ impl PPU {
                 self.render_sprite(&tile, offset as usize);
             }
         }
-
     }
-    
-     fn render_sprite(
-        &mut self,
-        planes: &[u8],
-        offset: usize,
-    ) {
+
+    fn render_sprite(&mut self, planes: &[u8], offset: usize) {
         for row in 0..8 {
             let plane0 = planes[row];
             let plane1 = planes[row + 8];
@@ -112,7 +116,6 @@ impl PPU {
         }
     }
 
-
     pub fn read_chr_rom(&self, address: u16) -> u8 {
         self.cartridge.borrow().chr_rom_data()[address as usize]
     }
@@ -125,7 +128,7 @@ impl PPU {
     }
 
     pub fn get_nametable_addr(&self, addr: u16) -> u16 {
-        let mirroring = self.cartridge.borrow().mirroring;
+        let mirroring = &self.cartridge.borrow().mirroring;
         match mirroring {
             Mirroring::Horizontal => {
                 match addr {
@@ -281,5 +284,4 @@ impl PPU {
         // Palette sample:
         println!("  Palette[0..8]: {:?}", &self.palette[0..8]);
     }
-
 }

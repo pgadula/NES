@@ -28,21 +28,21 @@ fn main() -> Result<(), Error> {
     let cartridge: Rc<RefCell<Cartridge>> = Rc::new(RefCell::new(Cartridge::load_rom(Path::new(
         "resources/sm.nes",
     ))?));
-    let nes_palette = load_pallete("resources/ntscpalette.pal").unwrap();
+    // let nes_palette = load_pallete("resources/ntscpalette.pal").unwrap();
     let ppu = Rc::new(RefCell::new(PPU::new(cartridge.clone())));
-    let mut main_bus = MainBus::new(ppu.clone());
+    let mut main_bus = Rc::new(RefCell::new(MainBus::new(ppu.clone())));
     println!("{:?}", cartridge.borrow().mirroring);
-    main_bus.load_cartridge(cartridge.clone());
-    let lo = main_bus.read(0xFFFC);
-    let hi = main_bus.read(0xFFFD);
+    main_bus.borrow_mut().load_cartridge(cartridge.clone());
+    let lo = main_bus.borrow_mut().read(0xFFFC);
+    let hi = main_bus.borrow_mut().read(0xFFFD);
     let mut cpu = m6502::cpu::Mos6502::new(main_bus);
     cpu.pc = ((hi as u16) << 8) | (lo as u16);
-    let background = cartridge.clone().borrow_mut().chr_rom_data().to_vec();
-    for planes in background.chunks(16) {
-        display_sprite(planes);
-        println!()
-    }
-    hex_dump(&cartridge.borrow().prg_rom_data()[0..128]);
+    // let background = cartridge.clone().borrow_mut().chr_rom_data().to_vec();
+    // for planes in background.chunks(16) {
+    //     display_sprite(planes);
+    //     println!()
+    // }
+    // hex_dump(&cartridge.borrow().prg_rom_data()[0..128]);
 
     println!("Program has started");
     let mut running = true;
@@ -60,90 +60,94 @@ fn main() -> Result<(), Error> {
             let mut nmi_closure = || cpu.nmi();
             ppu.borrow_mut().tick(Some(&mut nmi_closure));
         }
-        if ppu.borrow().get_incr() > 32 {
-            panic!("VALUE: {}", ppu.borrow().get_incr())
-        }
-        if ppu.borrow().scanline == 241 {}
+        // if ppu.borrow().get_incr() > 32 {
+        //     panic!("VALUE: {}", ppu.borrow().get_incr())
+        // }
+        // if ppu.borrow().scanline == 241 {}
         if line == 15905098 {
             running = false;
         }
         line += 1;
     }
-    println!("Program stopped!");
+    // println!("Program stopped!");
 
-    let palette = ppu.borrow().palette;
-    hex_dump(&palette);
+    // let palette = ppu.borrow().palette;
+    // hex_dump(&palette);
 
-    let mut palette_buffer: [u32; 32 * 32] = [0; 32 * 32];
-    for y in 0..32 {
-        for x in 0..32 {
-            let idx = y * 32 + x;
-            let color_idx = palette[idx % 32];
-            let hex = nes_palette[color_idx as usize % 64];
-            palette_buffer[idx] = hex;
-            if y == 0 {
-                print!("{:02} ", color_idx);
-            }
-        }
-    }
+    // let mut palette_buffer: [u32; 32 * 32] = [0; 32 * 32];
+    // for y in 0..32 {
+    //     for x in 0..32 {
+    //         let idx = y * 32 + x;
+    //         let color_idx = palette[idx % 32];
+    //         // let hex = nes_palette[color_idx as usize % 64];
+    //         palette_buffer[idx] = hex;
+    //         if y == 0 {
+    //             print!("{:02} ", color_idx);
+    //         }
+    //     }
+    // }
 
-    println!("------------------------------------\n");
-    println!("---------generating palette---------\n");
-    ppm("palette.ppm", 32, 32, &palette_buffer.to_vec());
+    // println!("------------------------------------\n");
+    // println!("---------generating palette---------\n");
+    // ppm("palette.ppm", 32, 32, &palette_buffer.to_vec());
 
-    println!("----------------------------------------");
-    println!("---------generating framebuffer---------");
-    let mut framebuffer: [u32; 240 * 256] = [0; 240 * 256];
-    let ppu_ctrl = ppu.borrow().ppu_crtl;
-    let pattern_base = if ppu_ctrl & 0b0001_0000 != 0 {
-        0x1000
-    } else {
-        0x0000
-    };
+    // println!("----------------------------------------");
+    // println!("---------generating framebuffer---------");
+    // let mut framebuffer: [u32; 240 * 256] = [0; 240 * 256];
+    // let pu_ctrl = ppu.borrow().ppu_crtl;
+    // let pattern_base = if ppu_ctrl & 0b0001_0000 != 0 {
+    // 0x1000
+    // } else {
+    // 0x0000
+    // };
 
-    for y in 0..(240 / 8) {
-        for x in 0..(256 / 8) {
-            let nametable_idx = y * (256 / 8) + x;
-            let vram_addr = ppu.borrow().get_nametable_addr(nametable_idx + 0x2000) as usize;
-            let tile_id = ppu.borrow().vram[vram_addr] as usize;
+    // for y in 0..(240 / 8) {
+    //     for x in 0..(256 / 8) {
+    //         let nametable_idx = y * (256 / 8) + x;
+    //         let vram_addr = ppu.borrow().get_nametable_addr(nametable_idx + 0x2000) as usize;
+    //         let tile_id = ppu.borrow().vram[vram_addr] as usize;
 
-            let c = cartridge.borrow();
-            let pattern_addr: usize = pattern_base + tile_id * 16;
+    //         let c = cartridge.borrow();
+    //         let pattern_addr: usize = pattern_base + tile_id * 16;
 
-            let tile = &c.chr_rom_data()[pattern_addr..pattern_addr + 16];
-            let offset = (x * 8) + (y * 8 * 256);
+    //         let tile = &c.chr_rom_data()[pattern_addr..pattern_addr + 16];
+    //         let offset = (x * 8) + (y * 8 * 256);
 
-            render_sprite(&tile, offset as usize, &mut framebuffer, &ppu.borrow(), &nes_palette);
-        }
-    }
+    //         render_sprite(
+    //             &tile,
+    //             offset as usize,
+    //             &mut framebuffer,
+    //             &ppu.borrow(),
+    //             &nes_palette,
+    //         );
+    //     }
+    // }
 
-    for y in 0..(240 / 8) {
-        for x in 0..(256 / 8) {
-            let nametable_idx = y * (256 / 8) + x;
-            let vram_addr = ppu.borrow().get_nametable_addr(nametable_idx + 0x2000) as usize;
-            let tile_id = ppu.borrow().get_nametable(0)[(nametable_idx) as usize] as usize;
-            let c = cartridge.borrow();
-            let tile = &c.chr_rom_data()[tile_id..tile_id + 16];
-            let offset = (x * 8) + (y * 8 * 256);
-            let color_code = ansi_color((tile_id) as u8);
-            print!("{}{:02x}.{}", color_code, tile_id, reset_color());
-        }
-        println!();
-    }
-    
-    ppu.borrow().dump();
-    ppu.borrow_mut().set_palette(&nes_palette);
+    // for y in 0..(240 / 8) {
+    //     for x in 0..(256 / 8) {
+    //         let nametable_idx = y * (256 / 8) + x;
+    //         let vram_addr = ppu.borrow().get_nametable_addr(nametable_idx + 0x2000) as usize;
+    //         let tile_id = ppu.borrow().get_nametable(0)[(nametable_idx) as usize] as usize;
+    //         let c = cartridge.borrow();
+    //         let tile = &c.chr_rom_data()[tile_id..tile_id + 16];
+    //         let offset = (x * 8) + (y * 8 * 256);
+    //         let color_code = ansi_color((tile_id) as u8);
+    //         print!("{}{:02x}.{}", color_code, tile_id, reset_color());
+    //     }
+    //     println!();
+    // }
+
+    // ppu.borrow().dump();
     ppu.borrow_mut().render();
     ppm(
-        "frame-ppu.ppm",
+        "frame-f-ppu.ppm",
         256,
         240,
         &ppu.borrow().framebuffer.to_vec(),
     );
-    ppm("frame2.ppm", 256, 240, &framebuffer.to_vec());
+    // ppm("frame2.ppm", 256, 240, &framebuffer.to_vec());
     Ok(())
 }
-
 fn render_sprite(
     planes: &[u8],
     offset: usize,

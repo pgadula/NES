@@ -26,7 +26,7 @@ fn load_pallete(file_path: &str) -> Result<[u32; 64], Error> {
 
 fn main() -> Result<(), Error> {
     let cartridge: Rc<RefCell<Cartridge>> = Rc::new(RefCell::new(Cartridge::load_rom(Path::new(
-        "resources/sm.nes",
+        "resources/dk.nes",
     ))?));
     // let nes_palette = load_pallete("resources/ntscpalette.pal").unwrap();
     let ppu = Rc::new(RefCell::new(PPU::new(cartridge.clone())));
@@ -60,10 +60,6 @@ fn main() -> Result<(), Error> {
             let mut nmi_closure = || cpu.nmi();
             ppu.borrow_mut().tick(Some(&mut nmi_closure));
         }
-        // if ppu.borrow().get_incr() > 32 {
-        //     panic!("VALUE: {}", ppu.borrow().get_incr())
-        // }
-        // if ppu.borrow().scanline == 241 {}
         if line == 15905098 {
             running = false;
         }

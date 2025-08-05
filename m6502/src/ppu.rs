@@ -17,6 +17,7 @@ pub struct PPU {
     pub cartridge: Rc<RefCell<Cartridge>>,
     pub vram: [u8; 2048],
     pub palette: [u8; 32],
+    pub oam: [u8; 4 * 64],
 
     //registers
     pub ppu_crtl: u8,
@@ -46,6 +47,7 @@ impl PPU {
             cartridge,
             vram: [0; 2048],
             palette: [0; 32],
+            oam: [0; 4 * 64],
             oam_addr: 0,
             oam_data: 0,
             oam_dma: 0,
@@ -284,4 +286,26 @@ impl PPU {
         // Palette sample:
         println!("  Palette[0..8]: {:?}", &self.palette[0..8]);
     }
+
+    pub fn oam_dma(&mut self, memory: &[u8], page_addr: u8) {
+        let start_addr: usize = (page_addr as usize) << 8;
+        let end_addr = start_addr + 256;
+        self.oam.copy_from_slice(&memory[start_addr..end_addr]);
+    }
+
+    pub fn get_sprite(&self, sprite_index: usize) -> Sprite {
+        return Sprite {
+            y_position: self.oam[sprite_index],
+            tile_index: self.oam[sprite_index + 1],
+            attributes: self.oam[sprite_index + 2],
+            x_position: self.oam[sprite_index + 3],
+        };
+    }
+}
+
+pub struct Sprite {
+    y_position: u8,
+    tile_index: u8,
+    attributes: u8,
+    x_position: u8,
 }

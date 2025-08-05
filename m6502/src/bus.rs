@@ -85,10 +85,11 @@ impl MainBus {
                 self.ppu.borrow_mut().cpu_write(addr as u16, value);
             }
             0x4000..=0x4017 => {
-               // println!(
-               //     "\x1b[32m[INFO] writing to APU addr:{:04X} value {}\x1b[0m",
-               //     addr, value
-               // );
+                
+                if addr == 0x4014 {
+                   self.ppu.borrow_mut().oam_dma(&self.cpu_ram, value); 
+                }
+                
             }
             _ => {
                 eprintln!("Unahandled address {:04X}", addr);

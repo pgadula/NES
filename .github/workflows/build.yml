@@ -94,6 +94,7 @@ jobs:
           path: ./web-emulator/dist
 
   deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-latest
     environment:

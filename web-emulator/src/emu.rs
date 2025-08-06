@@ -88,8 +88,14 @@ impl WebEmu {
     }
 
     #[wasm_bindgen(js_name = "nametable")]
-    pub fn nametable(&mut self) -> Vec<u8> {
-        let binding = self.ppu.borrow();
-        return binding.get_nametable(1).to_vec();
+    pub fn nametable(&mut self, n:u8) -> Vec<u8> {
+        return self.ppu.borrow_mut().get_nametable(0).to_vec();
+
+    }
+
+    #[wasm_bindgen(js_name = "ramDump")]
+    pub fn ram_dump(&mut self, addr: usize) -> Vec<u8> {
+        let end_addr:usize = addr + (16 * 32);
+        return self.bus.borrow().cpu_ram[addr..end_addr].to_vec();
     }
 }

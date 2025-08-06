@@ -65,8 +65,10 @@ jobs:
 
       # Install Node dependencies
       - name: Install Node dependencies
+        working-directory: ./web-emulator
         run: npm ci
 
       # Build Node project (assumed root or specify path if needed)
       - name: Build Node project
+        working-directory: ./web-emulator
         run: npm run build

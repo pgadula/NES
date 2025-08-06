@@ -29,18 +29,23 @@ jobs:
         with:
           toolchain: stable
 
-      # Cache Cargo dependencies
-      - name: Cache cargo registry
+      # Cache Cargo dependencies (registry + git together)
+      - name: Cache cargo dependencies
         uses: actions/cache@v3
         with:
-          path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Cache cargo git index
+      # Cache Rust target directory for web-emulator crate
+      - name: Cache Rust target directory
         uses: actions/cache@v3
         with:
-          path: ~/.cargo/git
-          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+          path: ./web-emulator/target
+          key: ${{ runner.os }}-rust-target-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-rust-target-
 
       # Test the core lib project (assuming it lives in ./m6502)
       - name: Test Rust core lib
@@ -56,16 +61,18 @@ jobs:
         working-directory: ./web-emulator
         run: cargo build --target wasm32-unknown-unknown --release
 
-      # Generate wasm-bindgen bindings for wrapper
+      # Install wasm-bindgen-cli only if missing, then generate bindings
       - name: Generate wasm-bindgen bindings
         working-directory: ./web-emulator
         run: |
-          cargo install wasm-bindgen-cli --version 0.2.100 || true
+          if ! command -v wasm-bindgen &> /dev/null; then
+            cargo install wasm-bindgen-cli --version 0.2.100
+          fi
           wasm-bindgen --target web \
             --out-dir pkg \
             target/wasm32-unknown-unknown/release/web_emulator.wasm
 
-      # Setup Node.js for building Node project
+      # Setup Node.js with caching for node_modules
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -73,20 +80,17 @@ jobs:
           cache: 'npm'
           cache-dependency-path: web-emulator/package-lock.json
 
-      - name: Clean node_modules and package-lock.json
-        working-directory: ./web-emulator
-        run: |
-          rm -rf node_modules
-          rm -f package-lock.json
-
+      # Install Node dependencies (no cleanup before, rely on cache)
       - name: Install Node dependencies
         working-directory: ./web-emulator
         run: npm install
 
+      # Build Node project
       - name: Build Node project
         working-directory: ./web-emulator
         run: npm run build
 
+      # Upload build artifacts for deploy job
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:

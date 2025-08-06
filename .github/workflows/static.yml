@@ -1,11 +1,10 @@
 name: Deploy static content to Pages
 
 on:
-  # Runs on pushes targeting the default branch
-  push:
-    branches: ["main"]
-
-  workflow_dispatch:
+  workflow_run:
+    workflows: ["Rust Lib + WASM Wrapper + Node Build"]
+    types:
+      - completed
 
 permissions:
   contents: read

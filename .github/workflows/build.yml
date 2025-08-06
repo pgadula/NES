@@ -1,10 +1,19 @@
-name: Rust Lib + WASM Wrapper + Node Build
+name: Rust Lib + WASM Wrapper + Node Build + Deploy to Pages
 
 on:
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -77,10 +86,38 @@ jobs:
       - name: Build Node project
         working-directory: ./web-emulator
         run: npm run build
-      
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: web-emulator-dist
           path: ./web-emulator/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: web-emulator-dist
+          path: ./web-emulator/dist
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: './web-emulator/dist'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

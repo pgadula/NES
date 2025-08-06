@@ -33,7 +33,7 @@ jobs:
           path: ~/.cargo/git
           key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
 
-      # Test the core lib project (assuming it lives in ./lib)
+      # Test the core lib project (assuming it lives in ./m6502)
       - name: Test Rust core lib
         working-directory: ./m6502
         run: cargo test --verbose
@@ -58,18 +58,18 @@ jobs:
 
       # Setup Node.js for building Node project
       - name: Setup Node.js
-        working-directory: ./web-emulator
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
+          cache-dependency-path: web-emulator/package-lock.json
 
       # Install Node dependencies
       - name: Install Node dependencies
         working-directory: ./web-emulator
         run: npm ci
 
-      # Build Node project (assumed root or specify path if needed)
+      # Build Node project
       - name: Build Node project
         working-directory: ./web-emulator
         run: npm run build

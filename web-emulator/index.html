@@ -3,18 +3,27 @@
 
 <head>
   <meta charset="utf-8" />
-  <title>WEBNES</title>
+  <title>WebNES1</title>
+  <link rel="stylesheet" href="style.css">
   <script type="module" src="src/index.ts"></script>
 </head>
 
 <body>
-  <main>
-    <input type="file" id="fileInput">
-    <canvas id="screen" width="256" height="240"></canvas>
-    <div id="cpu">
-      <ul id="cpu_registers">
+  <main class="container">
+    <h1>WEB-NES</h1>
+    <div class="buttons">
+      <label for="fileInput" class="nes-button">LOAD ROM</label>
+      <input type="file" id="fileInput" style="display: none;">
+      <button id="pause" class="nes-button">PAUSE</button>
+      <button id="step" class="nes-button">STEP</button>
 
-      </ul>
+    </div>
+
+    <canvas class="screen" id="screen" width="256" height="240"></canvas>
+    <div id="cpu">
+      <h3>CPU REGISTERS</h2>
+        <ul class="cpu_registers" id="cpu_registers">
+        </ul>
     </div>
   </main>
 </body>

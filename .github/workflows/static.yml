@@ -3,8 +3,8 @@ name: Deploy static content to Pages
 on:
   workflow_run:
     workflows: ["Rust Lib + WASM Wrapper + Node Build"]
-    types:
-      - completed
+    types: [completed]
+
 
 permissions:
   contents: read

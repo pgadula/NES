@@ -32,7 +32,7 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           # Upload only the 'dist' folder
-          path: '.web-emulator/dist'
+          path: './web-emulator/dist'
 
       - name: Deploy to GitHub Pages
         id: deployment

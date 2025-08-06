@@ -58,6 +58,7 @@ jobs:
 
       # Setup Node.js for building Node project
       - name: Setup Node.js
+        working-directory: ./web-emulator
         uses: actions/setup-node@v4
         with:
           node-version: '20'

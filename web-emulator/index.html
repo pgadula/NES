@@ -25,6 +25,30 @@
         <ul class="cpu_registers" id="cpu_registers">
         </ul>
     </div>
+    <div id="ram">
+      <h2>RAM</h2>
+      <input value="0" min="0" max="4064" id="ptr" type="number" step="16">
+      <div id="memory"></div>
+    </div>
+
+    <h2>NAMETABLE</h2>
+    <div id="nametable_1">
+      <fieldset>
+        <legend>Select a nametable:</legend>
+        <div>
+          <input type="radio" id="nametable-1" name="nametable" value="0"/>
+          <label for="nametable-1">1</label>
+        </div>
+        <div>
+          <input type="radio" id="nametable-2" name="nametable" value="1" />
+          <label for="nametable-2">2</label>
+        </div>
+      </fieldset>
+      <div id="nametable">
+
+
+      </div>
+    </div>
   </main>
 </body>
 

@@ -5,10 +5,15 @@ await wasmInit();
 const STEPS_PER_FRAME = 30000;
 const WIDTH = 256;
 const HEIGHT = 240;
+
 const screen = document.getElementById('screen') as HTMLCanvasElement;
 const pause_btn = document.getElementById('pause') as HTMLButtonElement;
 const step_btn = document.getElementById('step') as HTMLButtonElement;
 const cpu_registers_el: HTMLUListElement = document.getElementById('cpu_registers') as HTMLUListElement;
+const memory_el = document.getElementById('memory') as HTMLDivElement;
+const nametable_el = document.getElementById('nametable') as HTMLDivElement;
+const memoryPtr_el = document.getElementById('ptr') as HTMLInputElement;
+
 
 const ctx = screen.getContext('2d');
 const imageData = ctx.createImageData(WIDTH, HEIGHT);
@@ -19,12 +24,16 @@ let lastRenderTime = 0;
 async function start() {
   function render(ms) {
     if (emu) {
-      if(running){
+      if (running) {
         for (let i = 0; i < STEPS_PER_FRAME; i++) {
           emu.step();
         }
       }
+      
+      const selected_nametable = +(document.querySelector('input[name="nametable"]:checked') as HTMLInputElement)?.value;
 
+      memoryDump(nametable_el, emu.nametable(0), 0, 32)
+      memoryDump(memory_el, emu.ramDump(selected_nametable ?? 0), +memoryPtr_el.value)
       renderCpuRegisters(cpu_registers_el, Array.from(emu.cpuRegisters()));
 
 
@@ -49,6 +58,7 @@ async function start() {
     if (typeof WebEmu.loadCartridge === 'function') {
       emu = WebEmu.loadCartridge(new Uint8Array(bytes));
       running = true;
+
       console.log("Cartridge loaded and emulator running!");
     } else {
       console.error("loadCartridge is not defined yet.");
@@ -60,11 +70,11 @@ async function start() {
 
 start();
 
-pause_btn.addEventListener('click', ()=>{
+pause_btn.addEventListener('click', () => {
   running = !running;
-  pause_btn.textContent =  running ? "PAUSE" : 'START';
+  pause_btn.textContent = running ? "PAUSE" : 'START';
 })
-step_btn.addEventListener('click', ()=>{
+step_btn.addEventListener('click', () => {
   emu.step();
 })
 
@@ -99,12 +109,36 @@ function renderCpuRegisters(
     .join(' ');
 
   root.innerHTML = `
-  <li>PC: 0x${hex(pc, 4)}</li>
-  <li>&nbsp;A: 0x${hex(a)}</li>
-  <li>&nbsp;X: 0x${hex(x)}</li>
-  <li>&nbsp;Y: 0x${hex(y)}</li>
-  <li>SP: 0x${hex(sp)}</li>
-  <li>&nbsp;P: 0x${hex(p)}</li>
-  <li>${firstRow}<br>${secondRow}</li>
+  <li class='item'>PC: 0x${hex(pc, 4)}</li>
+  <li class='item'>&nbsp;A: 0x${hex(a)}</li>
+  <li class='item'>&nbsp;X: 0x${hex(x)}</li>
+  <li class='item'>&nbsp;Y: 0x${hex(y)}</li>
+  <li class='item'>SP: 0x${hex(sp)}</li>
+  <li class='item'>&nbsp;P: 0x${hex(p)}</li>
+  <li class='item'>${firstRow}<br>${secondRow}</li>
 `;
+}
+
+function memoryDump(root: HTMLElement, memoryDump: Uint8Array, ptr: number, offset = 16) {
+  const lines = [];
+
+  for (let i = 0; i < memoryDump.length; i += offset) {
+    const chunk = memoryDump.slice(i, i + offset);
+
+    const hexBytes = Array.from(chunk)
+      .map(b => b.toString(16).padStart(2, '0').toUpperCase())
+      .join(' ');
+
+    const ascii = Array.from(chunk)
+      .map(b => {
+        const char = String.fromCharCode(b);
+        return b >= 32 && b < 127 ? char : '.';
+      })
+      .join('');
+
+    const address = (+ptr * i).toString(16).padStart(4, '0').toUpperCase();
+    lines.push(`${address}: ${hexBytes.padEnd(47)}  ${ascii}`);
+  }
+
+  root.innerHTML = `<pre>${lines.join('\n')}</pre>`;
 }

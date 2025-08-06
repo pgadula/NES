@@ -10,11 +10,19 @@ body{
         font-style: normal;
 }
 .container{
+
 }
 
 .cpu_registers{
+    width: 10%;
+    display: flex;
     list-style: none;
     text-transform: uppercase;
+    flex-direction: column;
+}
+
+.item{
+    flex: 1 0 30%;
 }
 
 .screen{
@@ -22,15 +30,9 @@ body{
     border-radius: 3px;    
 }
 
-.button{
-    border: 1px solid black;
-}
-
 .buttons{
     display: flex;
 }
-
-
 
 .nes-button {
   background-color: #e3d6b5;

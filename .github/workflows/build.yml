@@ -64,13 +64,15 @@ jobs:
           cache: 'npm'
           cache-dependency-path: web-emulator/package-lock.json
 
-      - name: Clean node_modules folder
+      - name: Clean node_modules and package-lock.json
         working-directory: ./web-emulator
-        run: rm -rf node_modules
+        run: |
+          rm -rf node_modules
+          rm -f package-lock.json
 
       - name: Install Node dependencies
         working-directory: ./web-emulator
-        run: npm ci
+        run: npm install
 
       - name: Build Node project
         working-directory: ./web-emulator

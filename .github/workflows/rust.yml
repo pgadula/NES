@@ -51,7 +51,7 @@ jobs:
       - name: Generate wasm-bindgen bindings
         working-directory: ./web-emulator
         run: |
-          cargo install wasm-bindgen-cli --version 0.2.92 || true
+          cargo install wasm-bindgen-cli --version 0.2.100 || true
           wasm-bindgen --target web \
             --out-dir pkg \
             target/wasm32-unknown-unknown/release/web_emulator.wasm

@@ -89,7 +89,7 @@ impl WebEmu {
 
     #[wasm_bindgen(js_name = "nametable")]
     pub fn nametable(&mut self, n:u8) -> Vec<u8> {
-        return self.ppu.borrow_mut().get_nametable(0).to_vec();
+        return self.ppu.borrow_mut().get_nametable(n).to_vec();
 
     }
 

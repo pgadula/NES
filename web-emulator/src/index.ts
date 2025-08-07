@@ -29,11 +29,11 @@ async function start() {
           emu.step();
         }
       }
-      
+
       const selected_nametable = +(document.querySelector('input[name="nametable"]:checked') as HTMLInputElement)?.value;
 
-      memoryDump(nametable_el, emu.nametable(0), 0, 32)
-      memoryDump(memory_el, emu.ramDump(selected_nametable ?? 0), +memoryPtr_el.value)
+      memoryDump(nametable_el, emu.nametable(selected_nametable), 64, 32)
+      memoryDump(memory_el, emu.ramDump(+memoryPtr_el.value), +memoryPtr_el.value)
       renderCpuRegisters(cpu_registers_el, Array.from(emu.cpuRegisters()));
 
 
@@ -123,19 +123,32 @@ function memoryDump(root: HTMLElement, memoryDump: Uint8Array, ptr: number, offs
   const lines = [];
 
   for (let i = 0; i < memoryDump.length; i += offset) {
-    const chunk = memoryDump.slice(i, i + offset);
+    const chunk = memoryDump.slice(ptr + i, ptr + i + offset);
 
     const hexBytes = Array.from(chunk)
-      .map(b => b.toString(16).padStart(2, '0').toUpperCase())
+      .map(b => {
+        const hue = Math.floor((b / 255) * 240); 
+        const color = `hsl(${hue}, 80%, 60%)`;
+
+        return `<span style="color:${color}">${b.toString(16).padStart(2, '0').toUpperCase()}</span>`;
+      })
       .join(' ');
 
     const ascii = Array.from(chunk)
       .map(b => {
         const char = String.fromCharCode(b);
-        return b >= 32 && b < 127 ? char : '.';
+        let displayChar = b >= 32 && b < 127 ? char : '.';
+
+        // Assign color based on character type
+        let color = '#AAAAAA'; // default gray
+        if (/[A-Z]/.test(displayChar)) color = '#FF6B6B'; // red for uppercase
+        else if (/[a-z]/.test(displayChar)) color = '#4ECDC4'; // cyan for lowercase
+        else if (/[0-9]/.test(displayChar)) color = '#FFD93D'; // yellow for numbers
+        else if (displayChar === '.') color = '#999999'; // dull gray for non-printable
+
+        return `<span style="color:${color}">${displayChar}</span>`;
       })
       .join('');
-
     const address = (+ptr * i).toString(16).padStart(4, '0').toUpperCase();
     lines.push(`${address}: ${hexBytes.padEnd(47)}  ${ascii}`);
   }

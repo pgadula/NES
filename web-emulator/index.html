@@ -9,44 +9,53 @@
 </head>
 
 <body>
-  <main class="container">
+  <main>
     <h1>WEB-NES</h1>
-    <div class="buttons">
+    <div class="buttons container">
       <label for="fileInput" class="nes-button">LOAD ROM</label>
       <input type="file" id="fileInput" style="display: none;">
       <button id="pause" class="nes-button">PAUSE</button>
       <button id="step" class="nes-button">STEP</button>
 
     </div>
+    <div class="screen-container">
+      <div class="scr container">
+        <canvas class="screen" id="screen" width="256" height="240"></canvas>
+      </div>
+      <div class="container" id="ram">
+        <h2>RAM</h2>
+        <input class="bios-input" value="0" min="0" max="4064" id="ptr" type="number" step="16">
+        <div id="memory"></div>
+      </div>
 
-    <canvas class="screen" id="screen" width="256" height="240"></canvas>
-    <div id="cpu">
-      <h3>CPU REGISTERS</h2>
-        <ul class="cpu_registers" id="cpu_registers">
-        </ul>
+      <div class="container" id="cpu">
+        <h3>CPU REGISTERS</h2>
+          <ul class="cpu_registers" id="cpu_registers">
+          </ul>
+      </div>
     </div>
-    <div id="ram">
-      <h2>RAM</h2>
-      <input value="0" min="0" max="4064" id="ptr" type="number" step="16">
-      <div id="memory"></div>
-    </div>
 
-    <h2>NAMETABLE</h2>
-    <div id="nametable_1">
-      <fieldset>
-        <legend>Select a nametable:</legend>
-        <div>
-          <input type="radio" id="nametable-1" name="nametable" value="0"/>
-          <label for="nametable-1">1</label>
+
+    <div class="memory-layout" id="memory_layout">
+      <div class="container" id="nametable_1">
+        <h2>NAMETABLE</h2>
+        <fieldset class="bios-radio-group">
+          <legend>Select a nametable:</legend>
+
+          <div>
+            <input class="bios-radio" type="radio" id="nametable-1" name="nametable" value="0" checked />
+            <label for="nametable-1">1</label>
+          </div>
+
+          <div>
+            <input class="bios-radio" type="radio" id="nametable-2" name="nametable" value="1" />
+            <label for="nametable-2">2</label>
+          </div>
+        </fieldset>
+        <div class="container" id="nametable">
+
+
         </div>
-        <div>
-          <input type="radio" id="nametable-2" name="nametable" value="1" />
-          <label for="nametable-2">2</label>
-        </div>
-      </fieldset>
-      <div id="nametable">
-
-
       </div>
     </div>
   </main>

@@ -26,7 +26,7 @@ fn load_pallete(file_path: &str) -> Result<[u32; 64], Error> {
 
 fn main() -> Result<(), Error> {
     let cartridge: Rc<RefCell<Cartridge>> = Rc::new(RefCell::new(Cartridge::load_rom(Path::new(
-        "resources/dk.nes",
+        "resources/bf.nes",
     ))?));
     // let nes_palette = load_pallete("resources/ntscpalette.pal").unwrap();
     let ppu = Rc::new(RefCell::new(PPU::new(cartridge.clone())));
@@ -37,14 +37,7 @@ fn main() -> Result<(), Error> {
     let hi = main_bus.borrow_mut().read(0xFFFD);
     let mut cpu = m6502::cpu::Mos6502::new(main_bus);
     cpu.pc = ((hi as u16) << 8) | (lo as u16);
-    // let background = cartridge.clone().borrow_mut().chr_rom_data().to_vec();
-    // for planes in background.chunks(16) {
-    //     display_sprite(planes);
-    //     println!()
-    // }
-    // hex_dump(&cartridge.borrow().prg_rom_data()[0..128]);
 
-    println!("Program has started");
     let mut running = true;
     let mut line: u64 = 0;
     while running {
@@ -65,6 +58,7 @@ fn main() -> Result<(), Error> {
         }
         line += 1;
     }
+
     // println!("Program stopped!");
 
     // let palette = ppu.borrow().palette;
@@ -135,6 +129,7 @@ fn main() -> Result<(), Error> {
 
     // ppu.borrow().dump();
     ppu.borrow_mut().render();
+    ppu.borrow_mut().render_sprite();
     ppm(
         "frame-f-ppu.ppm",
         256,

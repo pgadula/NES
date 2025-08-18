@@ -1,6 +1,6 @@
-use std::{cell::RefCell, rc::Rc};
-
 use crate::cartridge::{Cartridge, Mirroring};
+use bitflags::bitflags;
+use std::{cell::RefCell, rc::Rc};
 const FALLBACK_PALETTE: [u32; 64] = [
     0xFF757572, 0xFF271B8F, 0xFF0000AB, 0xFF47009F, 0xFF8F0077, 0xFFA7004F, 0xFFA70000, 0xFF7F0B00,
     0xFF432F00, 0xFF004700, 0xFF005100, 0xFF003F17, 0xFF1B3F5F, 0xFF000000, 0xFF000000, 0xFF000000,
@@ -96,12 +96,12 @@ impl PPU {
                     buf
                 };
                 let offset = (x * 8) + (y * 8 * 256);
-                self.render_sprite(&tile, offset as usize);
+                self.render_background(&tile, offset as usize);
             }
         }
     }
 
-    fn render_sprite(&mut self, planes: &[u8], offset: usize) {
+    fn render_background(&mut self, planes: &[u8], offset: usize) {
         for row in 0..8 {
             let plane0 = planes[row];
             let plane1 = planes[row + 8];
@@ -114,6 +114,48 @@ impl PPU {
 
                 let fb = (row * 256) + offset + bit;
                 self.framebuffer[fb] = self.internal_palette[color_index as usize % 64];
+            }
+        }
+    }
+
+    pub fn render_sprite(&mut self) {
+        let sprite_data: Vec<[u8; 4]> = self
+            .oam
+            .chunks(4)
+            .map(|chunk| {
+                let mut arr = [0u8; 4];
+                arr.copy_from_slice(chunk);
+                arr
+            })
+            .collect();
+
+        for data in sprite_data.iter() {
+            let sprite = self.get_sprite(data);
+            let (sx, sy) = sprite.get_cord();
+            let start_addr = sprite.get_tile_index() as usize * 16;
+            let tile: [u8; 16] = {
+                let c = self.cartridge.borrow();
+                let data = c.chr_rom_data();
+                let mut buf = [0u8; 16];
+                buf.copy_from_slice(&data[start_addr..start_addr + 16]);
+                buf
+            };
+
+            for dy in 0..8 {
+                let plane0 = tile[dy];
+                let plane1 = tile[dy + 8];
+                for dx in 0..8 {
+                    let hi = plane0 >> (7 - dx) & 1;
+                    let lo = plane1 >> (7 - dx) & 1;
+
+                    let palette_index = (hi << 1) | lo;
+                    let color_index = self.palette[palette_index as usize];
+                    let index = ((dy as u32 + sy as u32) * 256 + (dx as u32 + sx as u32)) as usize;
+                    if index >= self.framebuffer.len() {
+                        continue;
+                    }
+                    self.framebuffer[index] = self.internal_palette[(color_index as usize) % 64];
+                }
             }
         }
     }
@@ -293,19 +335,41 @@ impl PPU {
         self.oam.copy_from_slice(&memory[start_addr..end_addr]);
     }
 
-    pub fn get_sprite(&self, sprite_index: usize) -> Sprite {
+    pub fn get_sprite(&self, data: &[u8]) -> Sprite {
         return Sprite {
-            y_position: self.oam[sprite_index],
-            tile_index: self.oam[sprite_index + 1],
-            attributes: self.oam[sprite_index + 2],
-            x_position: self.oam[sprite_index + 3],
+            y_position: data[0],
+            tile_index: data[1],
+            attributes: SpriteAttr::from_bits(data[2]).unwrap(),
+            x_position: data[3],
         };
     }
 }
 
+#[derive(Debug)]
 pub struct Sprite {
+    x_position: u8,
     y_position: u8,
     tile_index: u8,
-    attributes: u8,
-    x_position: u8,
+    attributes: SpriteAttr,
+}
+
+impl Sprite {
+    pub fn get_cord(&self) -> (u8, u8) {
+        (self.x_position, self.y_position)
+    }
+
+    pub fn get_tile_index(&self) -> u8 {
+        self.tile_index
+    }
+}
+
+bitflags! {
+    #[derive(Debug)]
+       pub struct SpriteAttr: u8 {
+       const Palette =     0b00000011;
+       const NotUsed =     0b00111100;
+       const Priority  =   0b00100000;
+       const Horizontal  = 0b01000000;
+       const Vertical =    0b10000000;
+    }
 }

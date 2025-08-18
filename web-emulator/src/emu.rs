@@ -56,6 +56,7 @@ impl WebEmu {
     #[wasm_bindgen(js_name = "getFramebuffer")]
     pub fn generate_framebuffer(&mut self) -> Vec<u32> {
         self.ppu.borrow_mut().render();
+        self.ppu.borrow_mut().render_sprite();
         let result = self.ppu.borrow().framebuffer.to_vec();
         return result;
     }

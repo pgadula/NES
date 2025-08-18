@@ -1,8 +1,7 @@
 [package]
-name = "m6502"
+name = "sandbox"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-[dependencies.bitflags]
-version = "2.9.0"
+nes= { path = "../NES" }

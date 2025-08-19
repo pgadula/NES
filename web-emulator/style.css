@@ -34,7 +34,15 @@ body {
   border-radius: 3px;
 }
 
+.title{
+  position: absolute;
+  top: -30px;
+  left: 10px;
+}
+
 .container {
+  margin-top: 50px;
+  position: relative;
   border: 3px solid #2A2B2E;
   border-radius: 5px;
   margin: 10px;
@@ -98,7 +106,6 @@ body {
   display: flex;
   justify-content: center;
 }
-
 
 .bios-input {
   background-color: #000;

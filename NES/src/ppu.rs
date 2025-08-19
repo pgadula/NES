@@ -149,6 +149,9 @@ impl PPU {
                     let lo = plane1 >> (7 - dx) & 1;
 
                     let palette_index = (hi << 1) | lo;
+                    if palette_index == 0{
+                        continue;
+                    }
                     let color_index = self.palette[palette_index as usize];
                     let index = ((dy as u32 + sy as u32) * 256 + (dx as u32 + sx as u32)) as usize;
                     if index >= self.framebuffer.len() {

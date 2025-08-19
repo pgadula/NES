@@ -1,7 +1,8 @@
 [package]
-name = "m6502"
+name = "nes_core"
 version = "0.1.0"
 edition = "2021"
+description = "A core library for a NES emulator, handling CPU, PPU, and memory."
 
 [dependencies]
 [dependencies.bitflags]

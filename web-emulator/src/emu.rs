@@ -1,5 +1,5 @@
-use m6502::cpu::Mos6502;
-use m6502::{bus::MainBus, cartridge::Cartridge, ppu::PPU};
+use nes_core::cpu::Mos6502;
+use nes_core::{bus::MainBus, cartridge::Cartridge, ppu::PPU};
 use std::{cell::RefCell, rc::Rc};
 use wasm_bindgen::prelude::*;
 

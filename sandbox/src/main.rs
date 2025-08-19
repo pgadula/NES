@@ -2,7 +2,7 @@ use std::fs::File;
 use std::io::Read;
 use std::{cell::RefCell, io::Error, path::Path, rc::Rc};
 
-use m6502::{bus::MainBus, cartridge::Cartridge, helpers::hex_dump, helpers::ppm, ppu::PPU};
+use nes_core::{bus::MainBus, cartridge::Cartridge, helpers::hex_dump, helpers::ppm, ppu::PPU};
 
 fn load_pallete(file_path: &str) -> Result<[u32; 64], Error> {
     let file: Vec<u8> = std::fs::read(file_path)?;
@@ -35,7 +35,7 @@ fn main() -> Result<(), Error> {
     main_bus.borrow_mut().load_cartridge(cartridge.clone());
     let lo = main_bus.borrow_mut().read(0xFFFC);
     let hi = main_bus.borrow_mut().read(0xFFFD);
-    let mut cpu = m6502::cpu::Mos6502::new(main_bus);
+    let mut cpu = nes_core::cpu::Mos6502::new(main_bus);
     cpu.pc = ((hi as u16) << 8) | (lo as u16);
 
     let mut running = true;

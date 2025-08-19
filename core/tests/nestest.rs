@@ -4,13 +4,13 @@ use std::{
     num::ParseIntError,
 };
 
-use nes::{cpu::PFlag, helpers::CpuState};
+use nes_core::{cpu::PFlag, helpers::CpuState};
 
 #[cfg(test)]
 mod tests {
     use std::{cell::RefCell, path::Path, rc::Rc};
 
-    use nes::{
+    use nes_core::{
         bus::MainBus,
         cartridge::Cartridge,
         cpu::Mos6502,

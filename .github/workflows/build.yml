@@ -42,9 +42,8 @@ jobs:
           path: ~/.cargo/git
           key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
 
-      # Test the core lib project (assuming it lives in ./m6502)
       - name: Test Rust core lib
-        working-directory: ./m6502
+        working-directory: ./nes
         run: cargo test --verbose
 
       # Add wasm32 target for wrapper build

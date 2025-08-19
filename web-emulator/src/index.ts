@@ -33,7 +33,7 @@ async function start() {
       const selected_nametable = +(document.querySelector('input[name="nametable"]:checked') as HTMLInputElement)?.value;
 
       memoryDump(nametable_el, emu.nametable(selected_nametable), 64, 32)
-      memoryDump(memory_el, emu.ramDump(+memoryPtr_el.value), +memoryPtr_el.value)
+      memoryDump(memory_el, emu.ramDump(+memoryPtr_el.value), +memoryPtr_el.value); 
       renderCpuRegisters(cpu_registers_el, Array.from(emu.cpuRegisters()));
 
 
@@ -123,7 +123,7 @@ function memoryDump(root: HTMLElement, memoryDump: Uint8Array, ptr: number, offs
   const lines = [];
 
   for (let i = 0; i < memoryDump.length; i += offset) {
-    const chunk = memoryDump.slice(ptr + i, ptr + i + offset);
+    const chunk = memoryDump.slice(i, i + offset);
 
     const hexBytes = Array.from(chunk)
       .map(b => {
@@ -149,7 +149,7 @@ function memoryDump(root: HTMLElement, memoryDump: Uint8Array, ptr: number, offs
         return `<span style="color:${color}">${displayChar}</span>`;
       })
       .join('');
-    const address = (+ptr * i).toString(16).padStart(4, '0').toUpperCase();
+    const address = (ptr + (i * offset)).toString(16).padStart(4, '0').toUpperCase();
     lines.push(`${address}: ${hexBytes.padEnd(47)}  ${ascii}`);
   }
 

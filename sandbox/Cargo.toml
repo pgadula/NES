@@ -4,4 +4,4 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-nes= { path = "../NES" }
+nes_core= { path = "../core" }

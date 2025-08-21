@@ -1,5 +1,5 @@
 use std::fs::File;
-use std::io::Read;
+use std::io::{stdout, Write};
 use std::{cell::RefCell, io::Error, path::Path, rc::Rc};
 
 use nes_core::{bus::MainBus, cartridge::Cartridge, helpers::hex_dump, helpers::ppm, ppu::PPU};
@@ -49,12 +49,13 @@ fn main() -> Result<(), Error> {
                 running = false;
             }
         }
-        for _ in 0..(3) {
+        for _ in 0..3 {
             let mut nmi_closure = || cpu.nmi();
             ppu.borrow_mut().tick(Some(&mut nmi_closure));
         }
-        if line == 15905098 {
-            running = false;
+
+        if line % 200_000 == 0 {
+            render_terminal_scaled(&ppu, 1, 1)?;
         }
         line += 1;
     }
@@ -128,7 +129,7 @@ fn main() -> Result<(), Error> {
     // }
 
     // ppu.borrow().dump();
-    ppu.borrow_mut().render();
+    ppu.borrow_mut().render_background();
     ppu.borrow_mut().render_sprite();
     ppm(
         "frame-f-ppu.ppm",
@@ -136,6 +137,7 @@ fn main() -> Result<(), Error> {
         240,
         &ppu.borrow().framebuffer.to_vec(),
     );
+
     // ppm("frame2.ppm", 256, 240, &framebuffer.to_vec());
     Ok(())
 }
@@ -229,10 +231,45 @@ fn print_stable_colored_hex(data: &[u8]) {
     println!();
 }
 
-fn ansi_color(n: u8) -> String {
-    format!("\x1b[38;5;{}m", n % 32)
-}
+pub fn render_terminal_scaled(
+    ppu: &Rc<RefCell<PPU>>,
+    sx: usize,
+    sy: usize,
+) -> std::io::Result<()> {
+    //[TODO] It would be cool to change this to double-buffered version. I think that will eliminate the problem with flickering of screen.
+    const W: usize = 256;
+    const H: usize = 240;
 
-fn reset_color() -> &'static str {
-    "\x1b[0m"
+    {
+        let mut p = ppu.borrow_mut();
+        p.render_background();
+        p.render_sprite();
+    }
+
+    let fb = ppu.borrow();
+    let fb: &[u32] = &fb.framebuffer;
+
+    let mut out = std::io::stdout().lock();
+    write!(out, "\x1b[?25l\x1b[2J\x1b[H")?;
+
+    for y in (0..H).step_by(2 * sy) {
+        let y2 = (y + sy).min(H - 1);
+        for x in (0..W).step_by(sx) {
+            let top = fb[y * W + x];
+            let bot = fb[y2 * W + x];
+
+            let (rt, gt, bt) = (((top >> 16) & 0xFF) as u8,
+                                ((top >>  8) & 0xFF) as u8,
+                                ((top >>  0) & 0xFF) as u8);
+            let (rb, gb, bb) = (((bot >> 16) & 0xFF) as u8,
+                                ((bot >>  8) & 0xFF) as u8,
+                                ((bot >>  0) & 0xFF) as u8);
+
+            write!(out, "\x1b[38;2;{rt};{gt};{bt}m\x1b[48;2;{rb};{gb};{bb}m▀")?;
+        }
+        write!(out, "\x1b[0m\n")?;
+    }
+
+    write!(out, "\x1b[0m\x1b[?25h")?;
+    out.flush()
 }

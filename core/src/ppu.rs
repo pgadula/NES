@@ -73,7 +73,7 @@ impl PPU {
         self.internal_palette = palette.clone();
     }
 
-    pub fn render(&mut self) {
+    pub fn render_background(&mut self) {
         let pattern_base = if self.ppu_crtl & 0b0001_0000 != 0 {
             0x1000
         } else {
@@ -95,25 +95,22 @@ impl PPU {
                     buf.copy_from_slice(&data[pattern_addr..pattern_addr + 16]);
                     buf
                 };
-                let offset = (x * 8) + (y * 8 * 256);
-                self.render_background(&tile, offset as usize);
-            }
-        }
-    }
+                let offset:usize = ((x * 8) + (y * 8 * 256)) as usize;
 
-    fn render_background(&mut self, planes: &[u8], offset: usize) {
-        for row in 0..8 {
-            let plane0 = planes[row];
-            let plane1 = planes[row + 8];
+                for row in 0..8 {
+                    let plane0 = tile[row];
+                    let plane1 = tile[row + 8];
 
-            for bit in 0..8 {
-                let hi = plane0 >> (7 - bit) & 1;
-                let lo = plane1 >> (7 - bit) & 1;
-                let palette_index = (hi << 1) | lo;
-                let color_index = self.palette[palette_index as usize];
+                    for bit in 0..8 {
+                        let hi = plane0 >> (7 - bit) & 1;
+                        let lo = plane1 >> (7 - bit) & 1;
+                        let palette_index = (hi << 1) | lo;
+                        let color_index = self.palette[palette_index as usize];
 
-                let fb = (row * 256) + offset + bit;
-                self.framebuffer[fb] = self.internal_palette[color_index as usize % 64];
+                        let fb = (row * 256) + offset + bit;
+                        self.framebuffer[fb] = self.internal_palette[color_index as usize % 64];
+                    }
+                }
             }
         }
     }
@@ -141,15 +138,19 @@ impl PPU {
                 buf
             };
 
+            let ver_flipped = sprite.attributes.contains(SpriteAttr::Vertical);
+            let hor_flipped = sprite.attributes.contains(SpriteAttr::Horizontal);
             for dy in 0..8 {
+                let dy = if ver_flipped { 7 - dy } else { dy };
                 let plane0 = tile[dy];
                 let plane1 = tile[dy + 8];
                 for dx in 0..8 {
-                    let hi = plane0 >> (7 - dx) & 1;
-                    let lo = plane1 >> (7 - dx) & 1;
+                    let bit_index = if !hor_flipped { 7 - dx } else { dx };
+                    let hi = plane0 >> bit_index & 1;
+                    let lo = plane1 >> bit_index & 1;
 
                     let palette_index = (hi << 1) | lo;
-                    if palette_index == 0{
+                    if palette_index == 0 {
                         continue;
                     }
                     let color_index = self.palette[palette_index as usize];

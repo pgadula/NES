@@ -6,6 +6,7 @@ const STEPS_PER_FRAME = 30000;
 const WIDTH = 256;
 const HEIGHT = 240;
 
+//handlers
 const screen = document.getElementById('screen') as HTMLCanvasElement;
 const pause_btn = document.getElementById('pause') as HTMLButtonElement;
 const step_btn = document.getElementById('step') as HTMLButtonElement;
@@ -13,37 +14,41 @@ const cpu_registers_el: HTMLUListElement = document.getElementById('cpu_register
 const memory_el = document.getElementById('memory') as HTMLDivElement;
 const nametable_el = document.getElementById('nametable') as HTMLDivElement;
 const memoryPtr_el = document.getElementById('ptr') as HTMLInputElement;
-
+const palettes = document.getElementById('palettes') as HTMLDivElement;
 
 const ctx = screen.getContext('2d');
-const imageData = ctx.createImageData(WIDTH, HEIGHT);
+const imageData = ctx.createImageData(WIDTH, HEIGHT, {
+  colorSpace: 'srgb'
+});
 let emu = null;
 let running = false;
 let lastRenderTime = 0;
 
 async function start() {
   function render(ms) {
-    if (emu) {
-      if (running) {
-        for (let i = 0; i < STEPS_PER_FRAME; i++) {
-          emu.step();
-        }
+
+    if (emu && running) {
+      for (let i = 0; i < STEPS_PER_FRAME; i++) {
+        emu.step();
       }
-
       const selected_nametable = +(document.querySelector('input[name="nametable"]:checked') as HTMLInputElement)?.value;
-
+      render_palettes(palettes, emu.paletteHex());
       memoryDump(nametable_el, emu.nametable(selected_nametable), 64, 32)
-      memoryDump(memory_el, emu.ramDump(+memoryPtr_el.value), +memoryPtr_el.value); 
+      memoryDump(memory_el, emu.ramDump(+memoryPtr_el.value), +memoryPtr_el.value);
       renderCpuRegisters(cpu_registers_el, Array.from(emu.cpuRegisters()));
 
 
       if (!lastRenderTime || ms - lastRenderTime >= 16) {
         lastRenderTime = ms;
 
-        const framebuffer = emu.getFramebuffer();
-        const buf = new Uint32Array(imageData.data.buffer);
-        buf.set(framebuffer);
-        ctx.putImageData(imageData, 0, 0);
+        const framebuffer = new Uint32Array(emu.getFramebuffer()); // 32-bit RGBA
+        const imgDataArray = new Uint8ClampedArray(framebuffer.buffer);
+
+        const view = new DataView(framebuffer.buffer);
+
+
+        const imgData = new ImageData(imgDataArray, 256, 240);
+        ctx.putImageData(imgData, 0, 0);
       }
     }
     requestAnimationFrame(render);
@@ -74,6 +79,7 @@ pause_btn.addEventListener('click', () => {
   running = !running;
   pause_btn.textContent = running ? "PAUSE" : 'START';
 })
+
 step_btn.addEventListener('click', () => {
   emu.step();
 })
@@ -96,13 +102,11 @@ function renderCpuRegisters(
     { name: 'C', bit: 0 }, // Carry
   ];
 
-  // Generate first row (N, V, -, B)
   const firstRow = flagsArray
     .slice(0, 4)
     .map(f => `${f.name}:${(p >> f.bit) & 1}`)
     .join(' ');
 
-  // Generate second row (D, I, Z, C)
   const secondRow = flagsArray
     .slice(4)
     .map(f => `${f.name}:${(p >> f.bit) & 1}`)
@@ -127,7 +131,7 @@ function memoryDump(root: HTMLElement, memoryDump: Uint8Array, ptr: number, offs
 
     const hexBytes = Array.from(chunk)
       .map(b => {
-        const hue = Math.floor((b / 255) * 240); 
+        const hue = Math.floor((b / 255) * 240);
         const color = `hsl(${hue}, 80%, 60%)`;
 
         return `<span style="color:${color}">${b.toString(16).padStart(2, '0').toUpperCase()}</span>`;
@@ -154,4 +158,28 @@ function memoryDump(root: HTMLElement, memoryDump: Uint8Array, ptr: number, offs
   }
 
   root.innerHTML = `<pre>${lines.join('\n')}</pre>`;
+}
+
+function render_palettes(root: HTMLElement, colors: Uint32Array) {
+  const array = Array.from(colors);
+
+  const bg = array.slice(0, 16);
+  const spr = array.slice(16, 32);
+
+  const renderSet = (arr: number[]) =>
+    arr.map((color, i) => {
+      let sep = ''
+      let el =
+        `<span class="palette" style="background:#${color.toString(16)}"></span>`
+      if (i % 4 == 0) {
+        sep = `<span>  </span>`
+      }
+      return sep + el;
+    }
+    ).join('');
+
+  root.innerHTML = `<div>
+      <span>BG:${renderSet(bg)}</span>
+      <span>SP:${renderSet(spr)}</span>
+    </div>`;
 }

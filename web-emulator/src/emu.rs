@@ -1,4 +1,5 @@
 use nes_core::cpu::Mos6502;
+use nes_core::helpers::disassembler;
 use nes_core::{bus::MainBus, cartridge::Cartridge, ppu::PPU};
 use std::{cell::RefCell, rc::Rc};
 use wasm_bindgen::prelude::*;
@@ -88,6 +89,18 @@ impl WebEmu {
         return c.chr_rom_data().to_vec();
     }
 
+#[wasm_bindgen(js_name = "paletteHex")]
+pub fn palette_hex(&self) -> Vec<u32> {
+    let ppu = self.ppu.borrow();
+
+    let mut bytes = ppu.palette;
+
+    bytes
+        .iter()
+        .map(|&c| ppu.internal_palette[(c) as usize])
+        .collect()
+}
+
     #[wasm_bindgen(js_name = "nametable")]
     pub fn nametable(&mut self, n:u8) -> Vec<u8> {
         return self.ppu.borrow_mut().get_nametable(n).to_vec();
@@ -98,5 +111,10 @@ impl WebEmu {
     pub fn ram_dump(&mut self, addr: usize) -> Vec<u8> {
         let end_addr:usize = addr + (16 * 32);
         return self.bus.borrow().cpu_ram[addr..end_addr].to_vec();
+    }
+
+    #[wasm_bindgen(js_name = "program")]
+    pub fn program(&mut self, n: u16) -> String {
+        return disassembler(&mut self.cpu.borrow_mut(), n);
     }
 }

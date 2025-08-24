@@ -2,6 +2,7 @@ use std::fs::File;
 use std::io::{stdout, Write};
 use std::{cell::RefCell, io::Error, path::Path, rc::Rc};
 
+use nes_core::helpers::disassembler;
 use nes_core::{bus::MainBus, cartridge::Cartridge, helpers::hex_dump, helpers::ppm, ppu::PPU};
 
 fn load_pallete(file_path: &str) -> Result<[u32; 64], Error> {
@@ -26,7 +27,7 @@ fn load_pallete(file_path: &str) -> Result<[u32; 64], Error> {
 
 fn main() -> Result<(), Error> {
     let cartridge: Rc<RefCell<Cartridge>> = Rc::new(RefCell::new(Cartridge::load_rom(Path::new(
-        "resources/bf.nes",
+        "resources/tennis.nes",
     ))?));
     // let nes_palette = load_pallete("resources/ntscpalette.pal").unwrap();
     let ppu = Rc::new(RefCell::new(PPU::new(cartridge.clone())));
@@ -231,11 +232,7 @@ fn print_stable_colored_hex(data: &[u8]) {
     println!();
 }
 
-pub fn render_terminal_scaled(
-    ppu: &Rc<RefCell<PPU>>,
-    sx: usize,
-    sy: usize,
-) -> std::io::Result<()> {
+pub fn render_terminal_scaled(ppu: &Rc<RefCell<PPU>>, sx: usize, sy: usize) -> std::io::Result<()> {
     //[TODO] It would be cool to change this to double-buffered version. I think that will eliminate the problem with flickering of screen.
     const W: usize = 256;
     const H: usize = 240;
@@ -257,13 +254,18 @@ pub fn render_terminal_scaled(
         for x in (0..W).step_by(sx) {
             let top = fb[y * W + x];
             let bot = fb[y2 * W + x];
-
-            let (rt, gt, bt) = (((top >> 16) & 0xFF) as u8,
-                                ((top >>  8) & 0xFF) as u8,
-                                ((top >>  0) & 0xFF) as u8);
-            let (rb, gb, bb) = (((bot >> 16) & 0xFF) as u8,
-                                ((bot >>  8) & 0xFF) as u8,
-                                ((bot >>  0) & 0xFF) as u8);
+            let (rt, gt, bt, at) = (
+                ((top >> 24) & 0xFF) as u8,
+                ((top >> 16) & 0xFF) as u8,
+                ((top >> 8) & 0xFF) as u8,
+                (top >> 0) as u8,
+            );
+        let (rb, gb, bb, ab) = (
+            ((bot >> 24) & 0xFF) as u8, // R
+            ((bot >> 16) & 0xFF) as u8, // G
+            ((bot >> 8)  & 0xFF) as u8, // B
+            ((bot >> 0)  & 0xFF) as u8, // A
+        );
 
             write!(out, "\x1b[38;2;{rt};{gt};{bt}m\x1b[48;2;{rb};{gb};{bb}m▀")?;
         }

@@ -168,3 +168,17 @@ body {
 .bios-radio-group input[type="radio"]:hover+label::before {
   color: #FFFF00;
 }
+
+.palettes{
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  padding-right: 10px;
+}
+
+.palette{
+  display: inline-block;
+  width: 15px;
+  height: 15px;
+  border: 1px solid black;
+}

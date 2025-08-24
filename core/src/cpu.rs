@@ -1,11 +1,15 @@
 use std::{
-    cell::RefCell, fmt::{self, Display, Formatter}, rc::Rc}
-;
+    cell::RefCell,
+    fmt::{self, Display, Formatter},
+    rc::Rc,
+};
 
 use bitflags::bitflags;
 
-use crate::{bus::MainBus, opcodes::{resolve_opcode, AddressingMode, Opcode, Mnemonic}};
-
+use crate::{
+    bus::MainBus,
+    opcodes::{resolve_opcode, AddressingMode, Mnemonic, Opcode},
+};
 
 pub const VECTOR_BASE: u8 = 0xFF;
 pub const RESET_VECTOR: u8 = 0xFC;
@@ -179,7 +183,9 @@ impl Mos6502 {
                 {
                     self.a = value as u8
                 } else {
-                    self.bus.borrow_mut().write(self.abs_addr as usize, value as u8);
+                    self.bus
+                        .borrow_mut()
+                        .write(self.abs_addr as usize, value as u8);
                 }
             }
             Mnemonic::BCC => {
@@ -267,7 +273,9 @@ impl Mos6502 {
             Mnemonic::DCP => {
                 instruction.1.apply(self);
                 let decremented = self.bus.borrow_mut().read(self.abs_addr).wrapping_sub(1);
-                self.bus.borrow_mut().write(self.abs_addr as usize, decremented);
+                self.bus
+                    .borrow_mut()
+                    .write(self.abs_addr as usize, decremented);
                 let result = self.a.wrapping_sub(decremented);
                 self.update_neg_flag(result);
                 self.update_zero_flag(result);
@@ -425,7 +433,9 @@ impl Mos6502 {
                 {
                     self.a = temp as u8
                 } else {
-                    self.bus.borrow_mut().write(self.abs_addr as usize, temp as u8);
+                    self.bus
+                        .borrow_mut()
+                        .write(self.abs_addr as usize, temp as u8);
                 }
                 self.update_zero_flag(temp as u8);
             }
@@ -473,7 +483,9 @@ impl Mos6502 {
                 {
                     self.a = temp as u8
                 } else {
-                    self.bus.borrow_mut().write(self.abs_addr as usize, temp as u8);
+                    self.bus
+                        .borrow_mut()
+                        .write(self.abs_addr as usize, temp as u8);
                 }
                 self.update_zero_flag(temp as u8);
             }
@@ -489,7 +501,9 @@ impl Mos6502 {
                 {
                     self.a = temp as u8
                 } else {
-                    self.bus.borrow_mut().write(self.abs_addr as usize, temp as u8);
+                    self.bus
+                        .borrow_mut()
+                        .write(self.abs_addr as usize, temp as u8);
                 }
                 self.update_zero_flag(temp as u8);
             }
@@ -545,7 +559,9 @@ impl Mos6502 {
             }
             Mnemonic::SAX => {
                 instruction.1.apply(self);
-                self.bus.borrow_mut().write(self.abs_addr as usize, self.x & self.a);
+                self.bus
+                    .borrow_mut()
+                    .write(self.abs_addr as usize, self.x & self.a);
             }
             Mnemonic::SLO => {
                 instruction.1.apply(self);
@@ -611,7 +627,9 @@ impl Mos6502 {
                 let temp = (self.fetched as u16) << 1 | carry_in;
                 self.p.set(PFlag::Negative, (temp & 0x80) != 0);
                 self.p.set(PFlag::Carry, carry_out);
-                self.bus.borrow_mut().write(self.abs_addr as usize, temp as u8);
+                self.bus
+                    .borrow_mut()
+                    .write(self.abs_addr as usize, temp as u8);
                 self.a &= temp as u8;
 
                 self.update_zero_flag(temp as u8);
@@ -640,7 +658,9 @@ impl Mos6502 {
                 if instruction.1 != AddressingMode::Implied
                     && instruction.1 != AddressingMode::Accumulator
                 {
-                    self.bus.borrow_mut().write(self.abs_addr as usize, rotated as u8);
+                    self.bus
+                        .borrow_mut()
+                        .write(self.abs_addr as usize, rotated as u8);
                 }
                 let a = self.a;
                 let result =
@@ -667,7 +687,10 @@ impl Mos6502 {
 
     pub fn pop(&mut self) -> u8 {
         self.sp = self.sp.wrapping_add(1);
-        let value = self.bus.borrow_mut().read((0x0100 as u16).wrapping_add(self.sp as u16));
+        let value = self
+            .bus
+            .borrow_mut()
+            .read((0x0100 as u16).wrapping_add(self.sp as u16));
         return value;
     }
 

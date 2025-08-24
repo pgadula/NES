@@ -623,6 +623,7 @@ pub static OPCODES_STRING: [&str; 256] = [
     " *ISC abx     $FF: bytes: 3 cycles: 7 A___P=>A___P RW absx",
 ];
 
+#[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Mnemonic {
     ADC,

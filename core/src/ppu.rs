@@ -2,14 +2,14 @@ use crate::cartridge::{Cartridge, Mirroring};
 use bitflags::bitflags;
 use std::{cell::RefCell, rc::Rc};
 const FALLBACK_PALETTE: [u32; 64] = [
-    0xFF757572, 0xFF271B8F, 0xFF0000AB, 0xFF47009F, 0xFF8F0077, 0xFFA7004F, 0xFFA70000, 0xFF7F0B00,
-    0xFF432F00, 0xFF004700, 0xFF005100, 0xFF003F17, 0xFF1B3F5F, 0xFF000000, 0xFF000000, 0xFF000000,
-    0xFFBCBCBC, 0xFF0073EF, 0xFF233BEF, 0xFF8300F3, 0xFFBF00BF, 0xFFE7005B, 0xFFDB2B00, 0xFFCB4F0F,
-    0xFF8B7300, 0xFF009700, 0xFF00AB00, 0xFF00933B, 0xFF00838B, 0xFF000000, 0xFF000000, 0xFF000000,
-    0xFFFFFFFF, 0xFF3FBFFF, 0xFF5F73FF, 0xFFA78BFD, 0xFFF77BFF, 0xFFFF77B7, 0xFFFF7763, 0xFFFF9B3B,
-    0xFFF3BF3F, 0xFF83D313, 0xFF4FDF4B, 0xFF58F898, 0xFF00EBDB, 0xFF757575, 0xFF000000, 0xFF000000,
-    0xFFFFFFFF, 0xFFABE7FF, 0xFFC7D7FF, 0xFFD7CBFF, 0xFFFFC7FF, 0xFFFFC7DB, 0xFFFFBFB3, 0xFFFFDBAB,
-    0xFFFFE7A3, 0xFFE3FFA3, 0xFFABF3BF, 0xFFB3FFCF, 0xFF9FFFF3, 0xFFD7D7D7, 0xFF000000, 0xFF000000,
+    0x545454FF, 0x001E74FF, 0x081090FF, 0x300088FF, 0x440064FF, 0x5C0030FF, 0x540400FF, 0x3C1800FF,
+    0x202A00FF, 0x083A00FF, 0x004000FF, 0x003C00FF, 0x00323CFF, 0x000000FF, 0x000000FF, 0x000000FF,
+    0x989698FF, 0x084CCCFF, 0x3032ECFF, 0x5C1EE4FF, 0x8814B0FF, 0xA01464FF, 0x981F20FF, 0x783C00FF,
+    0x545A00FF, 0x287200FF, 0x087C00FF, 0x007628FF, 0x006684FF, 0x000000FF, 0x000000FF, 0x000000FF,
+    0xECEEECFF, 0x4C9AEFFF, 0x787CECFF, 0xB062ECFF, 0xE454ECFF, 0xEC58B4FF, 0xEC6A64FF, 0xD48820FF,
+    0xA0AA00FF, 0x74C400FF, 0x4CD020FF, 0x38CC6CFF, 0x38B4CCFF, 0x3C3C3CFF, 0x000000FF, 0x000000FF,
+    0xECEEECFF, 0xA8CCECFF, 0xBCBCECFF, 0xD4B2ECFF, 0xECAFECFF, 0xECAFD4FF, 0xECB4B0FF, 0xE4C490FF,
+    0xCCD278FF, 0xB4DE78FF, 0xA8E290FF, 0x98E2B4FF, 0xA0D6E4FF, 0xA0A2A0FF, 0x000000FF, 0x000000FF,
 ];
 
 #[derive(Debug)]
@@ -36,6 +36,7 @@ pub struct PPU {
     w: bool, //latch
     t: u16,  //temporary address
     v: u16,  //internal register for vram addressing
+    temp_value: u8,
 
     pub framebuffer: [u32; 256 * 240],
     pub internal_palette: [u32; 64],
@@ -63,10 +64,32 @@ impl PPU {
             w: false,
             t: 0,
             v: 0,
+            temp_value: 0,
             framebuffer: [0; 256 * 240],
 
             internal_palette: FALLBACK_PALETTE,
         };
+    }
+
+    pub fn get_tile_palette(&self, tile_x: u8, tile_y: u8, nametable: u8) -> u8 {
+        let attr_table = self.get_attribute(nametable);
+        let attr_x = tile_x / 4;
+        let attr_y = tile_y / 4;
+        let attr_index = (attr_y as usize) * 8 + attr_x as usize; // 8 attribute bytes per row of 32 tiles
+        let attr_byte = attr_table[attr_index];
+
+        // Determine which quadrant in the attribute byte
+        let quadrant_x = (tile_x % 4) / 2;
+        let quadrant_y = (tile_y % 4) / 2;
+        let shift = match (quadrant_x, quadrant_y) {
+            (0, 0) => 0, // top-left
+            (1, 0) => 2, // top-right
+            (0, 1) => 4, // bottom-left
+            (1, 1) => 6, // bottom-right
+            _ => unreachable!(),
+        };
+
+        (attr_byte >> shift) & 0b11
     }
 
     pub fn set_palette(&mut self, palette: &[u32; 64]) {
@@ -95,8 +118,9 @@ impl PPU {
                     buf.copy_from_slice(&data[pattern_addr..pattern_addr + 16]);
                     buf
                 };
-                let offset:usize = ((x * 8) + (y * 8 * 256)) as usize;
-
+                let offset: usize = ((x * 8) + (y * 8 * 256)) as usize;
+                let palette_num = self.get_tile_palette(x as u8, y as u8, 0);
+                let palette_base = (palette_num * 4) as usize;
                 for row in 0..8 {
                     let plane0 = tile[row];
                     let plane1 = tile[row + 8];
@@ -105,10 +129,11 @@ impl PPU {
                         let hi = plane0 >> (7 - bit) & 1;
                         let lo = plane1 >> (7 - bit) & 1;
                         let palette_index = (hi << 1) | lo;
-                        let color_index = self.palette[palette_index as usize];
+
+                        let color_index = self.palette[palette_base + palette_index as usize];
 
                         let fb = (row * 256) + offset + bit;
-                        self.framebuffer[fb] = self.internal_palette[color_index as usize % 64];
+                        self.framebuffer[fb] = self.internal_palette[color_index as usize];
                     }
                 }
             }
@@ -130,6 +155,9 @@ impl PPU {
             let sprite = self.get_sprite(data);
             let (sx, sy) = sprite.get_cord();
             let start_addr = sprite.get_tile_index() as usize * 16;
+
+            //0x10 is offset to sprite pall
+            let palette_base = 0x10 + sprite.get_palette() * 4;
             let tile: [u8; 16] = {
                 let c = self.cartridge.borrow();
                 let data = c.chr_rom_data();
@@ -153,12 +181,12 @@ impl PPU {
                     if palette_index == 0 {
                         continue;
                     }
-                    let color_index = self.palette[palette_index as usize];
+                    let color_index = self.palette[(palette_base + palette_index) as usize];
                     let index = ((dy as u32 + sy as u32) * 256 + (dx as u32 + sx as u32)) as usize;
                     if index >= self.framebuffer.len() {
                         continue;
                     }
-                    self.framebuffer[index] = self.internal_palette[(color_index as usize) % 64];
+                    self.framebuffer[index] = self.internal_palette[(color_index as usize)];
                 }
             }
         }
@@ -207,7 +235,18 @@ impl PPU {
         }
     }
 
-    pub fn cpu_read(&mut self, address: u16) -> Option<u8> {
+    pub fn get_attribute(&self, n: u8) -> &[u8] {
+        match n {
+            0 => &self.vram[0x3C0..0x400],
+            1 => &self.vram[0x7C0..0x800],
+            _ => panic!("Invalid attribute num {}", n),
+        }
+    }
+
+    pub fn cpu_read(&mut self, address: u16, readonly: bool) -> Option<u8> {
+        if readonly {
+            return Some(0);
+        }
         let addr = match address {
             0x2000..=0x3FFF => 0x2000 + (address % 8),
             _ => address,
@@ -236,7 +275,22 @@ impl PPU {
                 //    eprintln!("Cannot read from addr {:04x}", addr);
                 None
             }
-            0x2007 => Some(self.ppu_data),
+            0x2007 => {
+                let addr = self.v & 0x3FFF;
+                let data = if addr >= 0x3F00 {
+                    let value = self.ppu_read_byte(addr);
+                    self.temp_value = self.ppu_read_byte(addr - 0x1000);
+                    value
+                } else {
+                    let buffered = self.temp_value;
+                    self.temp_value = self.ppu_read_byte(addr);
+                    buffered
+                };
+
+                // self.v = self.v.wrapping_add(self.get_incr());
+
+                Some(data)
+            }
             0x4014 => {
                 eprintln!("Cannot read from addr {:04x}", addr);
                 None
@@ -274,12 +328,25 @@ impl PPU {
                 }
             }
             0x2007 => {
-                let addr = self.v;
+                let mut addr = self.v;
                 if addr >= 0x2000 && addr <= 0x3EFF {
                     let mapped_addr = self.get_nametable_addr(addr);
                     self.vram[mapped_addr as usize] = value;
                 } else if addr >= 0x3F00 && addr <= 0x3FFF {
-                    self.palette[(addr % 32) as usize] = value;
+                    addr &= 0x001F;
+                    if addr == 0x0010 {
+                        addr = 0x0000;
+                    }
+                    if addr == 0x0014 {
+                        addr = 0x0004;
+                    }
+                    if addr == 0x0018 {
+                        addr = 0x0008;
+                    }
+                    if addr == 0x001C {
+                        addr = 0x000C;
+                    }
+                    self.palette[addr as usize] = value;
                 }
 
                 self.v = self.v.wrapping_add(self.get_incr());
@@ -312,6 +379,7 @@ impl PPU {
             }
         }
     }
+
     pub fn dump(&self) {
         println!("PPU State Dump:");
         println!("  Cycle: {}", self.cycle);
@@ -347,6 +415,35 @@ impl PPU {
             x_position: data[3],
         };
     }
+
+    fn ppu_read_byte(&self, mut addr: u16) -> u8 {
+        addr &= 0x3FFF;
+
+        match addr {
+            0x0000..=0x1FFF => self.read_chr_rom(addr),
+            0x2000..=0x3EFF => {
+                let mapped = self.get_nametable_addr(addr);
+                self.vram[mapped as usize]
+            }
+            0x3F00..=0x3FFF => {
+                let mut p = addr & 0x001F;
+                if p == 0x0010 {
+                    p = 0x0000;
+                }
+                if p == 0x0014 {
+                    p = 0x0004;
+                }
+                if p == 0x0018 {
+                    p = 0x0008;
+                }
+                if p == 0x001C {
+                    p = 0x000C;
+                }
+                self.palette[p as usize]
+            }
+            _ => 0,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -364,6 +461,10 @@ impl Sprite {
 
     pub fn get_tile_index(&self) -> u8 {
         self.tile_index
+    }
+
+    pub fn get_palette(&self) -> u8 {
+        self.attributes.bits() & SpriteAttr::Palette.bits()
     }
 }
 

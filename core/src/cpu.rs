@@ -17,7 +17,6 @@ pub const RESET_VECTOR: u8 = 0xFC;
 #[derive(Debug)]
 pub enum CpuError {
     InvalidOpcode(u8),
-    // other error variants...
 }
 
 #[derive(Debug)]
@@ -271,7 +270,7 @@ impl Mos6502 {
             Mnemonic::CLI => self.p.remove(PFlag::InterruptDisable),
             Mnemonic::CLV => self.p.remove(PFlag::Overflow),
             Mnemonic::DCP => {
-                instruction.1.apply(self);
+                instruction.1.set_addr(self);
                 let decremented = self.bus.borrow_mut().read(self.abs_addr).wrapping_sub(1);
                 self.bus
                     .borrow_mut()
@@ -303,20 +302,18 @@ impl Mos6502 {
                 self.update_zero_flag(value as u8);
             }
             Mnemonic::DEC => {
-                instruction.1.apply(self);
+                instruction.1.set_addr(self);
                 let value = self.bus.borrow_mut().read(self.abs_addr).wrapping_sub(1);
                 self.update_neg_flag(value);
                 self.update_zero_flag(value);
                 self.bus.borrow_mut().write(self.abs_addr.into(), value);
             }
             Mnemonic::DEX => {
-                instruction.1.apply(self);
                 self.x = self.x.wrapping_sub(1);
                 self.update_neg_flag(self.x);
                 self.update_zero_flag(self.x);
             }
             Mnemonic::DEY => {
-                instruction.1.apply(self);
                 self.y = self.y.wrapping_sub(1);
                 self.update_neg_flag(self.y);
                 self.update_zero_flag(self.y);
@@ -329,14 +326,14 @@ impl Mos6502 {
                 self.a = value;
             }
             Mnemonic::INC => {
-                instruction.1.apply(self);
+                instruction.1.set_addr(self);
                 let value = self.bus.borrow_mut().read(self.abs_addr).wrapping_add(1);
                 self.update_neg_flag(value);
                 self.update_zero_flag(value);
                 self.bus.borrow_mut().write(self.abs_addr.into(), value);
             }
             Mnemonic::ISB => {
-                instruction.1.apply(self);
+                instruction.1.set_addr(self);
 
                 let fetched = self.bus.borrow_mut().read(self.abs_addr).wrapping_add(1);
                 self.bus.borrow_mut().write(self.abs_addr as usize, fetched);
@@ -354,19 +351,17 @@ impl Mos6502 {
                 self.update_neg_flag(self.a);
             }
             Mnemonic::INX => {
-                instruction.1.apply(self);
                 self.x = self.x.wrapping_add(1);
                 self.update_neg_flag(self.x);
                 self.update_zero_flag(self.x);
             }
             Mnemonic::INY => {
-                instruction.1.apply(self);
                 self.y = self.y.wrapping_add(1);
                 self.update_neg_flag(self.y);
                 self.update_zero_flag(self.y);
             }
             Mnemonic::JMP => {
-                instruction.1.apply(self);
+                instruction.1.set_addr(self);
                 match instruction.1 {
                     AddressingMode::Absolute => {
                         self.pc = self.abs_addr;
@@ -390,7 +385,7 @@ impl Mos6502 {
                 }
             }
             Mnemonic::JSR => {
-                instruction.1.apply(self);
+                instruction.1.set_addr(self);
                 let ret_address = self.pc.wrapping_sub(1);
                 let high_byte: u8 = (ret_address >> 8) as u8;
                 let low_byte: u8 = (ret_address & 0xFF) as u8;
@@ -453,7 +448,6 @@ impl Mos6502 {
                 self.a = value;
             }
             Mnemonic::PHA => {
-                instruction.1.apply(self);
                 self.push(self.a);
             }
             Mnemonic::PHP => {
@@ -508,7 +502,6 @@ impl Mos6502 {
                 self.update_zero_flag(temp as u8);
             }
             Mnemonic::RTI => {
-                instruction.1.apply(self);
                 let registers = self.pop();
                 let pc_l = self.pop();
                 let pc_h = self.pop();
@@ -517,7 +510,6 @@ impl Mos6502 {
                 self.pc = Mos6502::get_address_from_bytes(pc_h, pc_l)
             }
             Mnemonic::RTS => {
-                instruction.1.apply(self);
                 let low_byte = self.pop();
                 let high_byte = self.pop();
                 self.pc = Mos6502::get_address_from_bytes(high_byte, low_byte).wrapping_add(1)
@@ -550,15 +542,15 @@ impl Mos6502 {
                 self.p.set(PFlag::InterruptDisable, true);
             }
             Mnemonic::STA => {
-                instruction.1.apply(self);
+                instruction.1.set_addr(self);
                 self.bus.borrow_mut().write(self.abs_addr as usize, self.a);
             }
             Mnemonic::STX => {
-                instruction.1.apply(self);
+                instruction.1.set_addr(self);
                 self.bus.borrow_mut().write(self.abs_addr as usize, self.x);
             }
             Mnemonic::SAX => {
-                instruction.1.apply(self);
+                instruction.1.set_addr(self);
                 self.bus
                     .borrow_mut()
                     .write(self.abs_addr as usize, self.x & self.a);
@@ -583,39 +575,33 @@ impl Mos6502 {
                 self.update_neg_flag(self.a);
             }
             Mnemonic::STY => {
-                instruction.1.apply(self);
+                instruction.1.set_addr(self);
                 self.bus.borrow_mut().write(self.abs_addr as usize, self.y);
             }
             Mnemonic::TAX => {
-                instruction.1.apply(self);
                 self.x = self.a;
                 self.update_neg_flag(self.x);
                 self.update_zero_flag(self.x);
             }
             Mnemonic::TAY => {
-                instruction.1.apply(self);
                 self.y = self.a;
                 self.update_neg_flag(self.y);
                 self.update_zero_flag(self.y);
             }
             Mnemonic::TSX => {
-                instruction.1.apply(self);
                 self.x = self.sp;
                 self.update_neg_flag(self.x);
                 self.update_zero_flag(self.x);
             }
             Mnemonic::TXA => {
-                instruction.1.apply(self);
                 self.a = self.x;
                 self.update_neg_flag(self.a);
                 self.update_zero_flag(self.a);
             }
             Mnemonic::TXS => {
-                instruction.1.apply(self);
                 self.sp = self.x;
             }
             Mnemonic::TYA => {
-                instruction.1.apply(self);
                 self.a = self.y;
                 self.update_neg_flag(self.a);
                 self.update_zero_flag(self.a);

@@ -27,7 +27,7 @@ fn load_pallete(file_path: &str) -> Result<[u32; 64], Error> {
 
 fn main() -> Result<(), Error> {
     let cartridge: Rc<RefCell<Cartridge>> = Rc::new(RefCell::new(Cartridge::load_rom(Path::new(
-        "resources/tennis.nes",
+        "resources/sm.nes",
     ))?));
     // let nes_palette = load_pallete("resources/ntscpalette.pal").unwrap();
     let ppu = Rc::new(RefCell::new(PPU::new(cartridge.clone())));

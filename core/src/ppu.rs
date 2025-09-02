@@ -153,6 +153,9 @@ impl PPU {
 
         for data in sprite_data.iter() {
             let sprite = self.get_sprite(data);
+            if sprite.attributes.contains(SpriteAttr::Priority){
+                continue;
+            }
             let (sx, sy) = sprite.get_cord();
             let start_addr = sprite.get_tile_index() as usize * 16;
 
@@ -287,7 +290,7 @@ impl PPU {
                     buffered
                 };
 
-                // self.v = self.v.wrapping_add(self.get_incr());
+                self.v = self.v.wrapping_add(self.get_incr());
 
                 Some(data)
             }
